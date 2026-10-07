@@ -1,0 +1,1 @@
+function t(e){let r=String(e??"").trim();return r.includes(",")&&(r=r.replace(/\./g,"").replace(",",".")),parseFloat(r)||0}function n(e){return String(Math.round((Number(e)||0)*1e3)/1e3).replace(".",",")}export{n as f,t as n};
