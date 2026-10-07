@@ -1,0 +1,225 @@
+@import 'tailwindcss';
+
+/* Font disimpan di aplikasi (bukan Google Fonts) supaya tetap tampil saat offline. */
+@import '@fontsource/nunito/latin-400.css';
+@import '@fontsource/nunito/latin-600.css';
+@import '@fontsource/nunito/latin-700.css';
+@import '@fontsource/nunito/latin-800.css';
+@import '@fontsource/plus-jakarta-sans/latin-700.css';
+@import '@fontsource/plus-jakarta-sans/latin-800.css';
+@import '@fontsource/cinzel/latin-700.css';
+
+@source '../**/*.blade.php';
+@source '../**/*.vue';
+@source '../**/*.js';
+
+/*
+ * ================================================================
+ * DESIGN TOKEN HERMES POS: ramah untuk semua umur, tampil modern
+ * ================================================================
+ * Aturan:
+ * - Ukuran dasar 18px (html 112.5%). Semua ukuran memakai rem, jadi pilihan
+ *   "Besar" / "Sangat Besar" ikut membesarkan seluruh tampilan.
+ * - Warna memakai token BERMAKNA (primary, surface, ink, ...), bukan kode warna.
+ *   Mode gelap cukup mengganti nilai token di bawah.
+ * - Semua pasangan teks/latar memenuhi kontras WCAG AA (>= 4.5:1) di kedua mode.
+ * - Jangan pakai text-xs / text-sm untuk informasi penting.
+ */
+@theme {
+    --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Nunito', ui-sans-serif, system-ui, sans-serif;
+    /* Huruf bergaya prasasti Yunani: hanya untuk merek & judul besar (bukan teks biasa, supaya tetap mudah dibaca) */
+    --font-greek: 'Cinzel', 'Times New Roman', serif;
+
+    /* Latar & teks */
+    --color-page: #f3f4f6;
+    --color-surface: #ffffff;
+    --color-surface-2: #f8fafc;
+    --color-line: #d1d5db;
+    --color-ink: #111827;
+    --color-ink-soft: #374151;
+
+    /* Abu gelap = aksi utama (Simpan, Bayar, Masuk). Netral & elegan; emas jadi warna yang menonjol. */
+    --color-primary: #1f2937;        /* teks putih di atasnya: 14.7:1 */
+    --color-primary-hover: #111827;
+    --color-primary-press: #030712;
+    --color-primary-soft: #e5e7eb;   /* latar lembut (terpilih, menu aktif) */
+    --color-primary-ink: #111827;    /* teks utama tegas di atas surface */
+    --color-on-primary: #ffffff;
+
+    /* Hitam merek (latar logo, panel merek, kartu Mulai Jualan). Sama di mode terang & gelap. */
+    --color-brand: #111827;
+
+    /* Emas = aksen merek (sandal bersayap Hermes). Untuk hiasan, bukan teks kecil. */
+    --color-accent: #f59e0b;
+    --color-accent-soft: #fef3c7;
+    --color-accent-ink: #92400e;
+
+    /* Status */
+    --color-danger: #b91c1c;
+    --color-danger-hover: #991b1b;
+    --color-danger-soft: #fee2e2;
+    --color-danger-ink: #991b1b;
+    --color-warn-soft: #fef3c7;
+    --color-warn-ink: #92400e;
+    --color-info-soft: #dbeafe;
+    --color-info-ink: #1e40af;
+    --color-focus: #2563eb;
+
+    /* Area sentuh minimal: 3.5rem = 63px pada ukuran normal (>= 56px) */
+    --spacing-touch: 3.5rem;
+    --spacing-touch-lg: 4.25rem;
+
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 16px rgb(15 23 42 / 0.06);
+    --shadow-float: 0 8px 32px rgb(15 23 42 / 0.18);
+
+    --animate-sheet-up: sheet-up 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    --animate-fade-in: fade-in 180ms ease-out;
+    --animate-pop-in: pop-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+
+    @keyframes sheet-up {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes pop-in {
+        from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+}
+
+/* ---------------- Mode gelap ---------------- */
+@layer base {
+    [data-theme='dark'] {
+        --color-page: #0b1120;
+        --color-surface: #151c2c;
+        --color-surface-2: #1c2536;
+        --color-line: #334155;
+        --color-ink: #f1f5f9;
+        --color-ink-soft: #cbd5e1;
+        /* Mode gelap: tombol utama emas dengan teks gelap (hitam + emas ala vas Yunani kuno) */
+        --color-primary: #f5b544;
+        --color-primary-hover: #f8c869;
+        --color-primary-press: #e0a12e;
+        --color-on-primary: #111827;
+        --color-primary-soft: #3a2f14;
+        --color-primary-ink: #f7c967;
+        --color-brand: #05070d;
+        --color-accent-soft: #3a2a0a;
+        --color-accent-ink: #fcd34d;
+        --color-danger: #dc2626;
+        --color-danger-hover: #b91c1c;
+        --color-danger-soft: #3b1515;
+        --color-danger-ink: #fca5a5;
+        --color-warn-soft: #3a2a0a;
+        --color-warn-ink: #fcd34d;
+        --color-info-soft: #172554;
+        --color-info-ink: #93c5fd;
+        --color-focus: #60a5fa;
+        --shadow-card: 0 0 0 1px rgb(51 65 85 / 0.6);
+        color-scheme: dark;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        [data-theme='system'] {
+            --color-page: #0b1120;
+            --color-surface: #151c2c;
+            --color-surface-2: #1c2536;
+            --color-line: #334155;
+            --color-ink: #f1f5f9;
+            --color-ink-soft: #cbd5e1;
+            --color-primary: #f5b544;
+            --color-primary-hover: #f8c869;
+            --color-primary-press: #e0a12e;
+            --color-on-primary: #111827;
+            --color-primary-soft: #3a2f14;
+            --color-primary-ink: #f7c967;
+            --color-brand: #05070d;
+            --color-accent-soft: #3a2a0a;
+            --color-accent-ink: #fcd34d;
+            --color-danger: #dc2626;
+            --color-danger-hover: #b91c1c;
+            --color-danger-soft: #3b1515;
+            --color-danger-ink: #fca5a5;
+            --color-warn-soft: #3a2a0a;
+            --color-warn-ink: #fcd34d;
+            --color-info-soft: #172554;
+            --color-info-ink: #93c5fd;
+            --color-focus: #60a5fa;
+            --shadow-card: 0 0 0 1px rgb(51 65 85 / 0.6);
+            color-scheme: dark;
+        }
+    }
+}
+
+/* ---------------- Dasar ---------------- */
+@layer base {
+    html {
+        font-size: 112.5%; /* 18px */
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+    }
+    html[data-size='besar'] {
+        font-size: 125%; /* 20px */
+    }
+    html[data-size='sangat-besar'] {
+        font-size: 137.5%; /* 22px */
+    }
+    body {
+        @apply bg-page font-sans text-ink antialiased;
+        line-height: 1.5;
+    }
+    h1, h2, h3 {
+        font-family: var(--font-display);
+        letter-spacing: -0.01em;
+    }
+    /* Hilangkan jeda 300ms & zoom ketuk-ganda pada tombol (terasa lebih cepat di HP) */
+    a, button, [role='button'], input, label, select, textarea {
+        touch-action: manipulation;
+    }
+    button, [role='button'] {
+        cursor: pointer;
+        user-select: none;
+    }
+    /* Fokus keyboard selalu terlihat jelas */
+    :focus-visible {
+        outline: 3px solid var(--color-focus);
+        outline-offset: 2px;
+    }
+    /* Hormati pengaturan "kurangi gerakan" di HP */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 1ms !important;
+            transition-duration: 1ms !important;
+        }
+    }
+}
+
+/* ---------------- Utilitas bersama ---------------- */
+@utility card {
+    background-color: var(--color-surface);
+    border-radius: 1.5rem;
+    box-shadow: var(--shadow-card);
+}
+
+/* Efek tekan halus agar tombol terasa "hidup" (ringan, tanpa animasi berat) */
+@utility pressable {
+    transition: transform 120ms ease, background-color 150ms ease, border-color 150ms ease;
+    &:active:not(:disabled) {
+        transform: scale(0.97);
+    }
+}
+
+/* Ruang aman untuk navigasi bawah + garis home iPhone */
+@utility pb-nav {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+@utility pt-safe {
+    padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+}
