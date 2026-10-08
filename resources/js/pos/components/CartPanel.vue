@@ -5,11 +5,11 @@
  * Kalau sedang melayani meja: bisa "Simpan ke Meja" (bayar nanti) atau "Pisah Bayar".
  */
 import { computed } from 'vue';
-import { Armchair, CheckSquare, Minus, Percent, Plus, Save, ShoppingBag, Square, Trash2, UserRound } from 'lucide-vue-next';
+import { Armchair, CheckSquare, Gift, Minus, Percent, Plus, Save, ShoppingBag, Square, Trash2, UserRound } from 'lucide-vue-next';
 import BigButton from '@/Components/ui/BigButton.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import { formatRupiah } from '@/composables/useRupiah';
-import { can, clearCart, hasModule, saveToTable, setQty, simpleMode, store, tableName, totals } from '../store';
+import { can, canRedeemMore, cancelRedeem, clearCart, customerPoints, hasModule, loyaltyRule, redeemReward, saveToTable, setQty, simpleMode, store, tableName, totals } from '../store';
 import { lineMoney } from '../lib/calculator';
 import { showToast } from '../lib/toast';
 
@@ -82,7 +82,17 @@ function toggleLine(line) {
         >
             <UserRound :size="22" aria-hidden="true" />
             <span class="truncate">{{ store.customer ? store.customer.name : 'Tambah nama pelanggan (boleh dilewati)' }}</span>
+            <span v-if="store.customer && loyaltyRule()" class="ml-auto shrink-0 text-sm">{{ customerPoints() }} poin</span>
         </button>
+
+        <div v-if="store.customer && loyaltyRule() && store.cart.length && (canRedeemMore() || store.redeemPoints)" class="mb-3 flex items-center gap-2 rounded-xl bg-accent-soft p-2">
+            <Gift :size="22" class="shrink-0 text-accent-ink" aria-hidden="true" />
+            <span class="flex-1 text-base font-bold text-accent-ink">{{ store.redeemPoints ? `Tukar ${store.redeemPoints} poin` : `Bisa tukar ${loyaltyRule().points_for_reward} poin` }}</span>
+            <button v-if="canRedeemMore()" type="button" class="pressable min-h-12 rounded-xl bg-accent px-3 text-base font-extrabold text-ink" @click="redeemReward() && showToast('Potongan tukar poin dipakai.')">
+                {{ store.redeemPoints ? 'Tambah' : 'Tukar Poin' }}
+            </button>
+            <button v-if="store.redeemPoints" type="button" class="pressable min-h-12 rounded-xl px-3 text-base font-bold text-danger-ink" @click="cancelRedeem">Batal</button>
+        </div>
 
         <p v-if="splitting" class="mb-2 rounded-xl bg-info-soft p-3 text-base font-bold text-info-ink">Centang pesanan yang dibayar sekarang. Sisanya tetap di meja.</p>
 

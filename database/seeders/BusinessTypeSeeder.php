@@ -36,11 +36,11 @@ class BusinessTypeSeeder extends Seeder
         ['code' => 'coffee_shop', 'name' => 'Kedai Kopi', 'category' => 'fnb',
             'pos_layout' => 'fnb', 'icon' => 'coffee',
             'description' => 'Kopi, minuman, makanan ringan',
-            'modules' => ['variants_modifiers', 'recipe', 'tables', 'kitchen_display', 'queue', 'qr_order']],
+            'modules' => ['variants_modifiers', 'recipe', 'tables', 'kitchen_display', 'queue', 'qr_order', 'loyalty', 'online_order']],
         ['code' => 'warung_makan', 'name' => 'Warung Makan', 'category' => 'fnb',
             'pos_layout' => 'fnb', 'icon' => 'utensils',
             'description' => 'Rumah makan, warteg, nasi padang, bakso',
-            'modules' => ['tables', 'qr_order']],
+            'modules' => ['tables', 'qr_order', 'online_order']],
 
         // C. Jasa
         ['code' => 'barbershop', 'name' => 'Tempat Cukur', 'category' => 'service',

@@ -5,7 +5,7 @@ import { Search, UserPlus, UserRound, X } from 'lucide-vue-next';
 import BigButton from '@/Components/ui/BigButton.vue';
 import BigInput from '@/Components/ui/BigInput.vue';
 import BottomSheet from '@/Components/ui/BottomSheet.vue';
-import { createCustomer, hasModule, searchCustomers, setCustomer, store } from '../store';
+import { createCustomer, hasModule, loyaltyRule, searchCustomers, setCustomer, store } from '../store';
 import { formatRupiah } from '@/composables/useRupiah';
 import { showToast } from '../lib/toast';
 
@@ -94,6 +94,7 @@ async function save() {
                             <span class="block text-lg font-bold text-ink">{{ c.name }}</span>
                             <span v-if="c.phone_display" class="block text-base text-ink-soft">{{ c.phone_display }}</span>
                             <span v-if="showBalance && c.balance > 0" class="block text-base font-bold text-danger-ink">Utang {{ formatRupiah(c.balance) }}</span>
+                            <span v-if="loyaltyRule() && c.points" class="block text-base font-bold text-accent-ink">{{ c.points }} poin</span>
                         </span>
                     </button>
                     <button v-if="showBalance && c.balance > 0" type="button" class="pressable min-h-touch shrink-0 rounded-2xl bg-accent-soft px-3 text-base font-bold text-accent-ink" @click="payKasbon(c)">Bayar<br />Utang</button>

@@ -24,6 +24,9 @@ class WhatsAppService
         'order_ready' => "Halo {nama}, pesanan Anda di *{usaha}* (nota {nota}) sudah *{status}* ✅\n\n{sisa}\n\nTerima kasih!",
         'booking_reminder' => "Halo {nama}, mengingatkan janji Anda di *{usaha}* hari ini jam *{jam}* untuk {layanan}.\n\nSampai jumpa! 🙏",
         'membership_expiring' => "Halo {nama}, paket member Anda di *{usaha}* akan habis pada *{tanggal}*.\n\nYuk perpanjang supaya tetap bisa latihan 💪",
+        'loyalty_points' => "Halo {nama}, terima kasih sudah belanja di *{usaha}* 🙏\n\nAnda dapat *{poin} poin*. Total poin sekarang: *{total}*.\nKumpulkan {target} poin untuk potongan {hadiah}.",
+        'daily_report' => "*Laporan {usaha}*\n{isi}",
+        'restock_alert' => "*Stok menipis di {usaha}*\n{isi}",
     ];
 
     public const LABELS = [
@@ -32,6 +35,9 @@ class WhatsAppService
         'order_ready' => 'Pesanan siap diambil',
         'booking_reminder' => 'Pengingat janji temu',
         'membership_expiring' => 'Paket member hampir habis',
+        'loyalty_points' => 'Poin pelanggan bertambah',
+        'daily_report' => 'Laporan harian ke pemilik',
+        'restock_alert' => 'Peringatan stok menipis',
     ];
 
     public function __construct(private TenantContext $context, private PlanGuard $guard) {}

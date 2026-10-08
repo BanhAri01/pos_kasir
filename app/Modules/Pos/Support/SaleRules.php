@@ -29,6 +29,7 @@ class SaleRules
             'due_date' => ['nullable', 'date'],
             'send_to_kitchen' => ['nullable', 'boolean'],
             'send_whatsapp' => ['nullable', 'boolean'],
+            'redeem_points' => ['nullable', 'integer', 'min:0', 'max:1000000'],
 
             'items' => ['required', 'array', 'min:1', 'max:300'],
             'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', $tenantId)],

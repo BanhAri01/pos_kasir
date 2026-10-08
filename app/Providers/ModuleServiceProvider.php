@@ -6,6 +6,7 @@ use App\Models\Outlet;
 use App\Models\User;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Policies\ProductPolicy;
+use App\Modules\Loyalty\Hooks\LoyaltyHook;
 use App\Modules\Operations\Hooks\CommissionHook;
 use App\Modules\Operations\Hooks\KitchenHook;
 use App\Modules\Operations\Hooks\MembershipHook;
@@ -35,6 +36,7 @@ class ModuleServiceProvider extends ServiceProvider
         MembershipHook::class,
         OrderStatusHook::class,
         KitchenHook::class,
+        LoyaltyHook::class,
         ReceiptWhatsAppHook::class,
     ];
 

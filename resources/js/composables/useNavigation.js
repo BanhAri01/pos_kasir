@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import {
     Armchair, Bike, Boxes, Calculator, CalendarDays, ChefHat, CreditCard, HandCoins, House, IdCard, LayoutGrid, ListChecks, ListOrdered,
     MessageCircle, NotebookPen, Package, Palette, ReceiptText, SlidersHorizontal, Store, Tags, Truck, UserRound, Users, Wallet, ChartColumn,
-    BadgePercent, CalendarClock, Crown, QrCode, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse,
+    BadgePercent, CalendarClock, Crown, Gift, QrCode, ShoppingBag, PackageSearch, Share2, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse,
 } from 'lucide-vue-next';
 import { useAuth } from './useAuth';
 
@@ -40,7 +40,7 @@ export function useNavigation() {
                 label: 'Lainnya',
                 href: route('more'),
                 icon: LayoutGrid,
-                match: ['more', 'outlets.*', 'staff.*', 'modules.*', 'preferences.*', 'billing.*', 'self-orders.*', 'dev.*', 'customers.*', 'payment-methods.*', ...businessRoutes],
+                match: ['more', 'outlets.*', 'staff.*', 'modules.*', 'preferences.*', 'billing.*', 'self-orders.*', 'loyalty.*', 'online-orders.*', 'restock.*', 'referral.*', 'dev.*', 'customers.*', 'payment-methods.*', ...businessRoutes],
                 mobileOnly: true,
                 show: true,
             },
@@ -83,6 +83,7 @@ export function useNavigation() {
             { key: 'warehouse-locations', label: 'Blok Gudang', description: 'Tempat simpan barang di gudang', href: route('warehouse.locations'), icon: MapPin, match: ['warehouse.locations*'], show: hasModule('multi_warehouse') && can('manage_stock') },
             { key: 'purchases', label: hasModule('weighed_receiving') ? 'Terima Barang' : 'Belanja ke Pemasok', description: 'Barang masuk & utang ke pemasok', href: route('purchases.index'), icon: Truck, match: ['purchases.*', 'suppliers.*'], show: hasModule('supplier_purchase') && can('manage_stock') },
             { key: 'commissions', label: 'Komisi Karyawan', description: 'Rekap komisi per karyawan', href: route('commissions.index'), icon: HandCoins, match: ['commissions.*'], show: hasModule('staff_commission') && can('view_reports') },
+            { key: 'loyalty', label: 'Poin Pelanggan', description: 'Aturan poin, hadiah, dan pelanggan setia', href: route('loyalty.index'), icon: Gift, match: ['loyalty.*'], show: hasModule('loyalty') && can('manage_customers') },
             { key: 'self-orders', label: 'Pesan Lewat QR', description: 'QR di meja & bayar QRIS dari HP pembeli', href: route('self-orders.settings'), icon: QrCode, match: ['self-orders.*'], show: hasModule('qr_order') && can('manage_business') },
             { key: 'tables', label: 'Meja', description: 'Daftar meja untuk makan di tempat', href: route('tables.index'), icon: Armchair, match: ['tables.*'], show: hasModule('tables') && can('manage_business') },
             { key: 'modifiers', label: 'Pilihan & Tambahan', description: 'Ukuran, level gula, topping', href: route('modifiers.index'), icon: SlidersHorizontal, match: ['modifiers.*'], show: hasModule('variants_modifiers') && can('manage_products') },

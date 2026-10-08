@@ -9,6 +9,7 @@ use App\Enums\Permission;
 use App\Models\User;
 use App\Core\Tenancy\TenantContext;
 use App\Modules\Operations\Models\Membership;
+use App\Modules\Loyalty\Services\LoyaltyService;
 use App\Modules\Operations\Models\Receivable;
 use App\Modules\Operations\Models\StaffCommission;
 use App\Modules\Pos\Models\PaymentMethod;
@@ -59,6 +60,7 @@ class SaleAdjustmentService
             // Batalkan juga hal yang ikut tercatat dari penjualan ini.
             StaffCommission::query()->where('sale_id', $sale->id)->where('status', 'pending')->update(['status' => 'canceled']);
             Receivable::query()->where('sale_id', $sale->id)->where('status', 'open')->update(['status' => 'canceled']);
+            app(LoyaltyService::class)->reverseSale($sale);
             Membership::query()->where('sale_id', $sale->id)->update(['status' => 'canceled']);
 
             $sale->update([

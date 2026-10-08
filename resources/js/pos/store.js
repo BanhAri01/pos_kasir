@@ -28,6 +28,7 @@ const state = reactive({
     tableId: null, // meja yang sedang dilayani (modul tables)
     bills: {}, // { [table_id]: bill } pesanan meja yang belum dibayar
     payOnlyKeys: null, // split bill: hanya baris ini yang dibayar sekarang
+    redeemPoints: 0,
 });
 
 export const store = state;
@@ -195,6 +196,7 @@ export function removeLine(line) {
 }
 
 export function setCustomer(customer) {
+    if (state.redeemPoints && state.customer?.uuid !== customer?.uuid) cancelRedeem();
     state.customer = customer;
     state.cart.forEach(priceLine); // harga khusus pelanggan (tukang, kontraktor, grosir)
 }
@@ -206,7 +208,33 @@ export function clearCart() {
     state.note = '';
     state.tableId = null;
     state.payOnlyKeys = null;
+    state.redeemPoints = 0;
     state.orderType = state.boot?.tenant.pos_layout === 'fnb' ? 'dine_in' : 'walk_in';
+}
+
+export const loyaltyRule = () => (hasModule('loyalty') ? state.boot?.tenant.loyalty ?? null : null);
+
+export function customerPoints() {
+    const c = state.customer ? state.boot.customers.find((x) => x.uuid === state.customer.uuid) : null;
+    return c?.points ?? state.customer?.points ?? 0;
+}
+
+export function canRedeemMore() {
+    const rule = loyaltyRule();
+    return !!rule && !!state.customer && customerPoints() - state.redeemPoints >= rule.points_for_reward;
+}
+
+export function redeemReward() {
+    const rule = loyaltyRule();
+    if (!canRedeemMore()) return false;
+    state.redeemPoints += rule.points_for_reward;
+    state.discount = { type: 'amount', value: (state.redeemPoints / rule.points_for_reward) * rule.reward_value };
+    return true;
+}
+
+export function cancelRedeem() {
+    if (state.redeemPoints) state.discount = { type: null, value: 0 };
+    state.redeemPoints = 0;
 }
 
 export const cartCount = computed(() => state.cart.reduce((sum, l) => sum + (l.decimal ? 1 : Number(l.qty)), 0));
@@ -434,6 +462,7 @@ export async function submitSale(payments, { payLater = false, dueDate = null, s
         pay_later: payLater || undefined,
         due_date: payLater ? dueDate : undefined,
         send_whatsapp: sendWhatsapp || undefined,
+        redeem_points: state.redeemPoints && state.customer ? state.redeemPoints : undefined,
         // Pesanan meja yang sudah dikirim ke dapur tidak dikirim lagi.
         send_to_kitchen: !alreadySentToKitchen,
         items: lines.map((l) => ({
@@ -463,6 +492,12 @@ export async function submitSale(payments, { payLater = false, dueDate = null, s
             product.stock_raw = round3(product.stock_raw - Number(line.qty) * (line.conversion || 1));
             product.stock = String(product.stock_raw).replace('.', ',');
         }
+    }
+
+    const rule = loyaltyRule();
+    if (rule && state.customer) {
+        const c = state.boot.customers.find((x) => x.uuid === state.customer.uuid);
+        if (c) c.points = Math.max(0, (c.points ?? 0) - (payload.redeem_points ?? 0)) + Math.floor((local.total - local.due_amount) / rule.spend_per_point);
     }
 
     // Utang pelanggan bertambah (kasbon / bayar nanti).

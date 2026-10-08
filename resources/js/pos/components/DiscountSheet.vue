@@ -22,6 +22,7 @@ watch(open, (v) => {
 });
 
 function save() {
+    store.redeemPoints = 0;
     if (type.value === 'percent') {
         const p = Math.min(100, Math.max(0, Number(percent.value) || 0));
         store.discount = p > 0 ? { type: 'percent', value: Math.round(p * 100) } : { type: null, value: 0 };
@@ -32,6 +33,7 @@ function save() {
 }
 
 function remove() {
+    store.redeemPoints = 0;
     store.discount = { type: null, value: 0 };
     open.value = false;
 }

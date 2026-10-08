@@ -9,7 +9,7 @@ import {
     Dumbbell, FileClock, Hammer, HandCoins, IdCard, LayoutGrid, ListChecks, ListOrdered,
     MessageCircle, Monitor, Notebook, Package, QrCode, Ruler, ScanBarcode, Scissors, Shirt,
     SlidersHorizontal, Sparkles, Store, Tags, Truck, Users, UtensilsCrossed, Wallet,
-    CalendarClock, Factory, Grid3x3, PackageOpen, Printer, Repeat, Scale, TrendingDown, Warehouse,
+    CalendarClock, Factory, Gift, ShoppingBag, Grid3x3, PackageOpen, Printer, Repeat, Scale, TrendingDown, Warehouse,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -28,7 +28,7 @@ const icons = {
     sparkles: Sparkles, store: Store, tags: Tags, truck: Truck, users: Users,
     utensils: UtensilsCrossed, wallet: Wallet,
     'calendar-clock': CalendarClock, factory: Factory, grid: Grid3x3, 'package-open': PackageOpen,
-    printer: Printer, repeat: Repeat, scale: Scale, 'trending-down': TrendingDown, warehouse: Warehouse,
+    gift: Gift, 'shopping-bag': ShoppingBag, printer: Printer, repeat: Repeat, scale: Scale, 'trending-down': TrendingDown, warehouse: Warehouse,
 };
 
 const component = computed(() => icons[props.name] ?? LayoutGrid);

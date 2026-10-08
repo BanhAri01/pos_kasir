@@ -101,6 +101,11 @@ class ModuleSeeder extends Seeder
             'description' => 'Jual barang titipan orang lain dengan bagi hasil. Laporan berapa yang harus dibayar ke pemiliknya.',
             'depends_on' => ['supplier_purchase']],
 
+        ['code' => 'loyalty', 'name' => 'Poin Pelanggan', 'icon' => 'gift',
+            'description' => 'Pelanggan dapat poin setiap belanja, lalu tukar poin dengan potongan harga.'],
+        ['code' => 'online_order', 'name' => 'Toko Online (Pesan Antar & Ambil)', 'icon' => 'shopping-bag',
+            'description' => 'Bagikan link toko di WhatsApp / Instagram. Pelanggan pesan untuk diambil atau diantar.'],
+
         ['code' => 'qr_order', 'name' => 'Pesan Lewat QR di Meja', 'icon' => 'qr-code',
             'description' => 'Pelanggan scan QR di meja lalu pesan sendiri dari HP-nya.',
             'depends_on' => ['tables']],

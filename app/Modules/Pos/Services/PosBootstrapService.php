@@ -13,6 +13,7 @@ use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Services\ProductQuery;
 use App\Modules\Customer\Models\Customer;
+use App\Modules\Loyalty\Services\LoyaltyService;
 use App\Modules\Operations\Models\DiningTable;
 use App\Modules\Operations\Models\MembershipPlan;
 use App\Modules\Operations\Models\Receivable;
@@ -90,6 +91,7 @@ class PosBootstrapService
                 'pos_layout' => $tenant->businessType->pos_layout,
                 'timezone' => $tenant->timezone,
                 'modules' => $tenant->enabledModuleCodes(),
+                'loyalty' => $has('loyalty') ? LoyaltyService::settings($tenant) : null,
             ],
             'outlet' => [
                 'id' => $outlet->id,
@@ -116,11 +118,12 @@ class PosBootstrapService
                 ])->values() : [],
             'payment_methods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'type']),
             // Pelanggan disimpan di HP supaya bisa dicari walau offline (dibatasi 2.000 terbaru).
-            'customers' => Customer::query()->latest('updated_at')->limit(2000)->get(['id', 'uuid', 'name', 'phone', 'price_level_id', 'credit_limit'])
+            'customers' => Customer::query()->latest('updated_at')->limit(2000)->get(['id', 'uuid', 'name', 'phone', 'price_level_id', 'credit_limit', 'loyalty_points'])
                 ->map(fn (Customer $c) => [
                     'uuid' => $c->uuid, 'name' => $c->name, 'phone' => $c->phone, 'phone_display' => Phone::display($c->phone),
                     'price_level_id' => $c->price_level_id, 'credit_limit' => $c->credit_limit,
                     'balance' => (int) ($balances[$c->id] ?? 0),
+                    'points' => (int) $c->loyalty_points,
                 ]),
             // Karyawan yang bisa dipilih sebagai pengerja layanan (kapster, terapis, trainer).
             'staff' => User::query()->where('tenant_id', $tenant->id)->where('is_active', true)
