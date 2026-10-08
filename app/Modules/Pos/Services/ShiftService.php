@@ -7,6 +7,7 @@ use App\Modules\Pos\Models\CashMovement;
 use App\Modules\Pos\Models\Refund;
 use App\Modules\Pos\Models\SalePayment;
 use App\Modules\Pos\Models\Shift;
+use App\Modules\Report\Services\OwnerReportService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -136,6 +137,8 @@ class ShiftService
                     ->withProperties(['selisih' => $shift->cash_difference])
                     ->log($shift->cash_difference < 0 ? 'Tutup kasir: uang kurang' : 'Tutup kasir: uang lebih');
             }
+
+            DB::afterCommit(fn () => app(OwnerReportService::class)->shiftClosed($shift));
 
             return $shift;
         });

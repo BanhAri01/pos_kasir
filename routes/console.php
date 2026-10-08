@@ -11,3 +11,4 @@ Artisan::command('inspire', function () {
 Illuminate\Support\Facades\Schedule::command('hermes:send-reminders')->everyFifteenMinutes()->withoutOverlapping();
 Illuminate\Support\Facades\Schedule::command('hermes:backup')->dailyAt('01:45')->withoutOverlapping();
 Illuminate\Support\Facades\Schedule::command('queue:work --stop-when-empty --max-time=50 --tries=3')->everyMinute()->withoutOverlapping();
+Illuminate\Support\Facades\Schedule::command('hermes:owner-reports')->everyFifteenMinutes()->withoutOverlapping();
