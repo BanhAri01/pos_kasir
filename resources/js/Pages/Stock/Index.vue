@@ -4,7 +4,7 @@
  */
 import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, Package, Search, Truck } from 'lucide-vue-next';
+import { ArrowDownToLine, ArrowUpFromLine, ClipboardCheck, Package, Search, ShoppingCart, Truck } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import CatalogTabs from '@/Components/CatalogTabs.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
@@ -30,6 +30,7 @@ const actions = [
     { label: 'Stok Keluar', text: 'Rusak / hilang', href: route('stock.adjust', 'keluar'), icon: ArrowUpFromLine, tone: 'bg-danger-soft text-danger-ink' },
     { label: 'Hitung Stok', text: 'Cocokkan dengan rak', href: route('stock.opname'), icon: ClipboardCheck, tone: 'bg-info-soft text-info-ink' },
     { label: 'Kirim Stok', text: 'Ke cabang / gudang lain', href: route('stock.transfers'), icon: Truck, tone: 'bg-accent-soft text-accent-ink' },
+    { label: 'Daftar Belanja', text: 'Stok menipis, pesan ke pemasok', href: route('restock.index'), icon: ShoppingCart, tone: 'bg-warn-soft text-warn-ink' },
 ];
 </script>
 

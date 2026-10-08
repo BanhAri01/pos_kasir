@@ -26,7 +26,6 @@ class WhatsAppService
         'membership_expiring' => "Halo {nama}, paket member Anda di *{usaha}* akan habis pada *{tanggal}*.\n\nYuk perpanjang supaya tetap bisa latihan 💪",
         'loyalty_points' => "Halo {nama}, terima kasih sudah belanja di *{usaha}* 🙏\n\nAnda dapat *{poin} poin*. Total poin sekarang: *{total}*.\nKumpulkan {target} poin untuk potongan {hadiah}.",
         'daily_report' => "*Laporan {usaha}*\n{isi}",
-        'restock_alert' => "*Stok menipis di {usaha}*\n{isi}",
     ];
 
     public const LABELS = [
@@ -37,7 +36,6 @@ class WhatsAppService
         'membership_expiring' => 'Paket member hampir habis',
         'loyalty_points' => 'Poin pelanggan bertambah',
         'daily_report' => 'Laporan harian ke pemilik',
-        'restock_alert' => 'Peringatan stok menipis',
     ];
 
     public function __construct(private TenantContext $context, private PlanGuard $guard) {}

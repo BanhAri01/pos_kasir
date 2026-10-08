@@ -68,7 +68,7 @@ class OwnerReportService
         $payments = collect($this->reports->payments($filter))
             ->map(fn ($p) => '• '.$p['name'].': '.Rupiah::format($p['net']))
             ->implode("\n");
-        $low = $this->lowStockCount();
+        $low = $this->lowStockNames();
 
         $lines = [
             $day->locale('id')->translatedFormat('l, j F Y'),
@@ -95,9 +95,14 @@ class OwnerReportService
             $lines[] = '*Paling laku*';
             $lines[] = $top;
         }
-        if ($low > 0) {
+        if ($low->isNotEmpty()) {
             $lines[] = '';
-            $lines[] = "⚠️ {$low} barang stoknya menipis. Cek menu Stok > Daftar Belanja.";
+            $lines[] = '⚠️ *Stok menipis*';
+            $lines[] = $low->take(8)->map(fn (string $name) => '• '.$name)->implode("
+");
+            if ($low->count() > 8) {
+                $lines[] = '... dan '.($low->count() - 8).' lainnya. Cek menu Stok > Daftar Belanja.';
+            }
         }
 
         return implode("\n", $lines);
@@ -189,10 +194,11 @@ class OwnerReportService
         });
     }
 
-    private function lowStockCount(): int
+    private function lowStockNames(): Collection
     {
-        return Product::query()->where('is_active', true)->where('track_stock', true)->whereNotNull('min_stock')
+        return Product::query()->where('is_active', true)->where('track_stock', true)->where('min_stock', '>', 0)
             ->whereHas('stocks', fn ($q) => $q->whereColumn('stocks.qty', '<=', 'products.min_stock'))
-            ->count();
+            ->orderBy('name')
+            ->pluck('name');
     }
 }

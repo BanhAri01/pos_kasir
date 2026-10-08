@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Inventory\Http\Controllers\RestockController;
 use App\Modules\Inventory\Http\Controllers\StockController;
 use App\Modules\Inventory\Http\Controllers\StockDocumentController;
 use Illuminate\Support\Facades\Route;
@@ -7,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'tenant', 'can:manage_stock'])->prefix('stok')->group(function () {
     Route::get('/', [StockController::class, 'index'])->name('stock.index');
     Route::get('riwayat/{product}', [StockController::class, 'history'])->name('stock.history');
+    Route::get('belanja', RestockController::class)->name('restock.index');
 
     // Stok masuk (/stok/masuk) & stok keluar (/stok/keluar)
     Route::get('{type}', [StockController::class, 'adjust'])->whereIn('type', ['masuk', 'keluar'])
