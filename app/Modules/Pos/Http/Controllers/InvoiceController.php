@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pos\Http\Controllers;
 
+use App\Core\Support\DocumentPaper;
 use App\Core\Support\Phone;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
@@ -26,6 +27,7 @@ class InvoiceController extends Controller
             'outletPhone' => Phone::display($sale->outlet->phone),
             'customerPhone' => Phone::display($sale->customer?->phone),
             'at' => ($sale->completed_at ?? $sale->created_at)->timezone($tenant->timezone),
+            'paper' => DocumentPaper::resolve($request, $sale->outlet),
         ]);
     }
 }

@@ -18,7 +18,7 @@ class Outlet extends Model
     public const TYPES = ['store' => 'Toko', 'warehouse' => 'Gudang'];
 
     protected $fillable = [
-        'name', 'code', 'type', 'address', 'phone', 'receipt_header', 'receipt_footer', 'receipt_paper',
+        'name', 'code', 'type', 'address', 'phone', 'receipt_header', 'receipt_footer', 'receipt_paper', 'document_paper',
         'tax_rate_bp', 'tax_inclusive', 'service_charge_bp', 'settings', 'is_active',
     ];
 

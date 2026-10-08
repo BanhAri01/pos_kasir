@@ -1,3 +1,8 @@
+@php
+    $paper = $paper ?? 'a4';
+    $continuous = $paper === 'kontinyu';
+    $paperLinks = request()->routeIs('sales.invoice', 'deliveries.print');
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -6,7 +11,6 @@
     <meta name="robots" content="noindex">
     <title>@yield('title')</title>
     <style>
-        /* Dokumen A4 sederhana tanpa framework, enak dicetak dari browser mana pun. */
         :root { color-scheme: light; }
         * { box-sizing: border-box; }
         body { margin: 0; background: #e5e7eb; font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #111827; }
@@ -27,9 +31,11 @@
         .grand td { font-size: 17px; font-weight: 800; border-top: 2px solid #111827; padding-top: 8px; }
         .sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; text-align: center; }
         .sign div { padding-top: 64px; border-bottom: 1px solid #111827; }
-        .actions { max-width: 210mm; margin: 0 auto 24px; padding: 0 16px; display: flex; gap: 10px; }
-        .actions button { flex: 1; min-height: 52px; border-radius: 14px; border: 0; font: 700 17px system-ui, sans-serif; background: #1f2937; color: #fff; cursor: pointer; }
-        .actions button.secondary { background: #fff; color: #111827; border: 2px solid #d1d5db; }
+        .actions { max-width: 210mm; margin: 0 auto 24px; padding: 0 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .actions button, .actions a { flex: 1; min-height: 52px; border-radius: 14px; border: 0; font: 700 17px system-ui, sans-serif; background: #1f2937; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; padding: 0 14px; }
+        .actions .secondary { background: #fff; color: #111827; border: 2px solid #d1d5db; }
+        .actions .chosen { background: #f5b544; color: #111827; }
+        .paper-switch { flex-basis: 100%; display: flex; gap: 10px; }
         @media (max-width: 640px) { .sheet { padding: 20px 16px; min-height: 0; margin: 0; } .grid { grid-template-columns: 1fr; } .doc-title { text-align: left; } }
         @media print {
             @page { size: A4; margin: 12mm; }
@@ -37,11 +43,39 @@
             .sheet { box-shadow: none; margin: 0; padding: 0; min-height: 0; max-width: none; }
             .actions { display: none; }
         }
+        @if($continuous)
+        body { font: 12.5px/1.4 'Courier New', Courier, monospace; color: #000; }
+        .sheet { max-width: 9.5in; min-height: 11in; padding: .35in .4in; }
+        .actions { max-width: 9.5in; }
+        .head { border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; }
+        .brand { font-size: 17px; }
+        .doc-title { font-size: 18px; color: #000; }
+        .muted, .label { color: #000; }
+        .grid { gap: 10px; margin-bottom: 10px; }
+        .box { border: 1px dashed #000; border-radius: 0; padding: 6px 8px; }
+        th { background: none; font-size: 11.5px; border-bottom: 1px solid #000; }
+        th, td { border: 0; border-bottom: 1px dashed #000; padding: 4px 5px; }
+        .grand td { font-size: 14px; border-top: 1px solid #000; }
+        .sign { margin-top: 28px; }
+        .sign div { padding-top: 44px; border-bottom: 1px dashed #000; }
+        @media (max-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
+        @media print {
+            @page { size: 9.5in 11in; margin: .25in .3in; }
+            .sheet { padding: 0; min-height: 0; }
+        }
+        @endif
     </style>
 </head>
 <body>
     <div class="sheet">@yield('content')</div>
     <div class="actions">
+        @if($paperLinks)
+            <div class="paper-switch">
+                @foreach(\App\Core\Support\DocumentPaper::SIZES as $key => $label)
+                    <a href="{{ request()->fullUrlWithQuery(['kertas' => $key]) }}" class="{{ $paper === $key ? 'chosen' : 'secondary' }}">{{ $label }}</a>
+                @endforeach
+            </div>
+        @endif
         <button type="button" onclick="window.print()">Cetak / Simpan PDF</button>
         <button type="button" class="secondary" onclick="history.length > 1 ? history.back() : window.close()">Kembali</button>
     </div>

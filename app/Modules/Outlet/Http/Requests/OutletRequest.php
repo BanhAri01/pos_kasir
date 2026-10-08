@@ -2,6 +2,7 @@
 
 namespace App\Modules\Outlet\Http\Requests;
 
+use App\Core\Support\DocumentPaper;
 use App\Core\Support\Phone;
 use App\Models\Outlet;
 use Illuminate\Foundation\Http\FormRequest;
@@ -49,6 +50,7 @@ class OutletRequest extends FormRequest
             'receipt_header' => ['nullable', 'string', 'max:255'],
             'receipt_footer' => ['nullable', 'string', 'max:255'],
             'receipt_paper' => ['nullable', Rule::in(['58', '80'])],
+            'document_paper' => ['nullable', Rule::in(array_keys(DocumentPaper::SIZES))],
         ];
     }
 
@@ -88,6 +90,7 @@ class OutletRequest extends FormRequest
             $result['receipt_header'] = $data['receipt_header'] ?? null;
             $result['receipt_footer'] = $data['receipt_footer'] ?? null;
             $result['receipt_paper'] = $data['receipt_paper'] ?? '58';
+            $result['document_paper'] = $data['document_paper'] ?? 'a4';
         }
 
         return $result;

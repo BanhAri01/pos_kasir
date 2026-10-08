@@ -27,6 +27,7 @@ const form = useForm({
     receipt_header: props.outlet?.receipt_header ?? '',
     receipt_footer: props.outlet?.receipt_footer ?? '',
     receipt_paper: props.outlet?.receipt_paper ?? '58',
+    document_paper: props.outlet?.document_paper ?? 'a4',
 });
 
 const { hasModule } = useAuth();
@@ -87,6 +88,11 @@ function submit() {
                     <div>
                         <span class="mb-2 block text-lg font-bold text-ink">Lebar kertas struk</span>
                         <SegmentedControl v-model="form.receipt_paper" label="Lebar kertas struk" :options="[{ value: '58', label: '58 mm (kecil)' }, { value: '80', label: '80 mm (besar)' }]" />
+                    </div>
+                    <div>
+                        <span class="mb-2 block text-lg font-bold text-ink">Kertas faktur & surat jalan</span>
+                        <SegmentedControl v-model="form.document_paper" label="Kertas faktur dan surat jalan" :options="[{ value: 'a4', label: 'A4' }, { value: 'kontinyu', label: 'Kontinyu 9,5 x 11 inci' }]" />
+                        <span class="mt-2 block text-base text-ink-soft">Pilih kontinyu untuk printer dot matrix (contoh Epson LX-310) dengan kertas berlubang 3 rangkap.</span>
                     </div>
                 </div>
             </div>

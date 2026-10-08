@@ -2,6 +2,7 @@
 
 namespace App\Modules\Operations\Http\Controllers;
 
+use App\Core\Support\DocumentPaper;
 use App\Core\Support\Phone;
 use App\Core\Support\Qty;
 use App\Core\Tenancy\CurrentOutlet;
@@ -110,7 +111,7 @@ class DeliveryController extends Controller
     }
 
     /** Surat jalan A4 (dicetak dari browser). */
-    public function print(string $uuid): View
+    public function print(Request $request, string $uuid): View
     {
         $delivery = Delivery::query()->where('uuid', $uuid)->with(['items', 'sale', 'outlet'])->firstOrFail();
 
@@ -119,6 +120,7 @@ class DeliveryController extends Controller
             'tenant' => $this->context->get(),
             'outlet' => $delivery->outlet,
             'timezone' => $this->context->get()->timezone,
+            'paper' => DocumentPaper::resolve($request, $delivery->outlet),
         ]);
     }
 }

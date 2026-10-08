@@ -271,6 +271,10 @@ describe('pengiriman & faktur', function () {
         $this->actingAs($owner)->get(route('deliveries.create', $sale->uuid))->assertInertia(fn (Assert $page) => $page->where('items.0.remaining', '6'));
         $this->actingAs($owner)->get(route('deliveries.print', $delivery->uuid))->assertOk()->assertSee('SURAT JALAN')->assertSee('Pak Mandor');
         $this->actingAs($owner)->get(route('sales.invoice', $sale->uuid))->assertOk()->assertSee('FAKTUR')->assertSee('Enam ratus delapan puluh ribu');
+        $this->actingAs($owner)->get(route('sales.invoice', ['uuid' => $sale->uuid, 'kertas' => 'kontinyu']))->assertOk()->assertSee('size: 9.5in 11in', false);
+        $this->actingAs($owner)->get(route('deliveries.print', $delivery->uuid))->assertDontSee('size: 9.5in 11in', false);
+        asTenant($owner->tenant, fn () => $sale->outlet->update(['document_paper' => 'kontinyu']));
+        $this->actingAs($owner)->get(route('deliveries.print', $delivery->uuid))->assertSee('size: 9.5in 11in', false);
     });
 });
 

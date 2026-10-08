@@ -113,7 +113,7 @@ const row = 'flex justify-between gap-3 text-lg';
                     target="_blank"
                     class="pressable flex min-h-touch items-center justify-center gap-3 rounded-2xl border-2 border-line bg-surface px-6 text-lg font-bold text-ink hover:border-ink-soft"
                 >
-                    <FileText :size="22" aria-hidden="true" /> Faktur A4
+                    <FileText :size="22" aria-hidden="true" /> Faktur / Nota Besar
                 </a>
                 <BigButton v-if="!isVoid && hasModule('delivery')" variant="secondary" :href="route('deliveries.create', sale.uuid)">
                     <Bike :size="22" aria-hidden="true" /> Kirim Barang

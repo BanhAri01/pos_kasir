@@ -29,6 +29,7 @@ class OutletResource extends JsonResource
             'receipt_header' => $this->receipt_header,
             'receipt_footer' => $this->receipt_footer,
             'receipt_paper' => $this->receipt_paper ?? '58',
+            'document_paper' => $this->document_paper ?? 'a4',
         ];
     }
 }
