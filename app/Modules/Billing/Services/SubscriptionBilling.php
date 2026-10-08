@@ -159,6 +159,7 @@ class SubscriptionBilling
 
             [$from, $until] = $tenant->extendSubscription($payment->months, $payment->plan);
             $payment->fill(['period_from' => $from->toDateString(), 'period_until' => $until->toDateString()])->save();
+            app(ReferralService::class)->rewardFor($tenant, $payment);
 
             activity('langganan')->performedOn($tenant)->log(sprintf(
                 'Langganan %s %d bulan dibayar Rp%s, aktif sampai %s',
@@ -178,7 +179,7 @@ class SubscriptionBilling
             throw ValidationException::withMessages(['months' => 'Pilih paket dan lama langganan (1 sampai 36 bulan).']);
         }
 
-        return DB::transaction(function () use ($tenant, $admin, $plan, $months, $amount, $note) {
+        $payment = DB::transaction(function () use ($tenant, $admin, $plan, $months, $amount, $note) {
             $tenant = Tenant::query()->whereKey($tenant->id)->lockForUpdate()->firstOrFail();
             [$from, $until] = $tenant->extendSubscription($months, $plan);
             $base = $amount ?? (isset(Plans::durations()[$months]) ? Plans::price($plan, $months) : Plans::get($plan)['price'] * $months);
@@ -202,5 +203,9 @@ class SubscriptionBilling
                 'paid_at' => now(),
             ]);
         });
+
+        app(ReferralService::class)->rewardFor($payment->tenant()->first(), $payment);
+
+        return $payment;
     }
 }

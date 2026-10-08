@@ -84,6 +84,11 @@ return [
         12 => ['discount' => 1667, 'label' => '12 bulan (bayar 10 bulan)'],
     ],
 
+    'referral' => [
+        'reward_days' => (int) env('HERMES_REFERRAL_REWARD_DAYS', 30),
+        'new_tenant_bonus_days' => (int) env('HERMES_REFERRAL_BONUS_DAYS', 7),
+    ],
+
     'payment' => [
         'driver' => env('HERMES_PAYMENT_DRIVER'),
         'expiry_minutes' => (int) env('HERMES_PAYMENT_EXPIRY_MINUTES', 60),

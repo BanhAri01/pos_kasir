@@ -11,6 +11,7 @@ use App\Modules\Billing\Payments\Gateways;
 use App\Modules\Billing\Services\PaymentFee;
 use App\Modules\Billing\Services\PlanGuard;
 use App\Modules\Billing\Services\Plans;
+use App\Modules\Billing\Services\ReferralService;
 use App\Modules\Billing\Services\SubscriptionBilling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ class BillingController extends Controller
 {
     public function __construct(private SubscriptionBilling $billing, private TenantContext $context) {}
 
-    public function index(Request $request, PlanGuard $guard): Response
+    public function index(Request $request, PlanGuard $guard, ReferralService $referrals): Response
     {
         $tenant = $this->context->get();
         $catalog = Plans::catalog();
@@ -43,6 +44,7 @@ class BillingController extends Controller
             'usage' => $guard->usage($tenant),
             'canPay' => $request->user()->can(Permission::ManageBusiness->value),
             'onlineAvailable' => $this->billing->available(),
+            'referral' => $referrals->summary($tenant),
             'payments' => SubscriptionPayment::query()->where('tenant_id', $tenant->id)->latest('id')->limit(20)->get()
                 ->map->summary()->values(),
         ]);

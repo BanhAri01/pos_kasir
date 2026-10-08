@@ -1,7 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { BadgeCheck, CalendarClock, Check, CreditCard, MessageCircle, QrCode, ShieldAlert } from 'lucide-vue-next';
+import { BadgeCheck, CalendarClock, Check, Copy, CreditCard, Gift, MessageCircle, QrCode, ShieldAlert } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BigButton from '@/Components/ui/BigButton.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
@@ -17,9 +17,25 @@ const props = defineProps({
     canPay: { type: Boolean, default: false },
     onlineAvailable: { type: Boolean, default: false },
     payments: { type: Array, default: () => [] },
+    referral: { type: Object, default: null },
 });
 
 const page = usePage();
+const referralCopied = ref(false);
+const referralWa = computed(() => {
+    if (!props.referral) return '';
+    const text = `Saya pakai Hermes POS untuk kasir usaha, gampang dan bisa jalan walau internet mati. Daftar lewat link ini dapat bonus coba gratis ${props.referral.bonus_days} hari: ${props.referral.url}`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+});
+
+async function copyReferral() {
+    try {
+        await navigator.clipboard.writeText(props.referral.url);
+        referralCopied.value = true;
+    } catch {
+        referralCopied.value = false;
+    }
+}
 const form = useForm({ plan: props.subscription.plan, months: 1, channel: 'qris' });
 
 const selectedPlan = computed(() => props.catalog.plans.find((p) => p.key === form.plan));
@@ -147,6 +163,22 @@ function pay() {
         </section>
 
         <p v-else-if="!canPay" class="card mb-6 p-5 text-lg text-ink">Hanya pemilik usaha yang bisa membayar langganan.</p>
+
+        <section v-if="referral" class="card mb-6 flex flex-col gap-4 p-5">
+            <div class="flex items-start gap-3">
+                <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink"><Gift :size="26" aria-hidden="true" /></span>
+                <span>
+                    <span class="block text-xl font-extrabold text-ink">Ajak teman, dapat gratis {{ referral.reward_days }} hari</span>
+                    <span class="block text-lg text-ink-soft">Setiap usaha yang daftar lewat link Anda lalu berlangganan, langganan Anda bertambah {{ referral.reward_days }} hari. Teman Anda dapat bonus coba gratis {{ referral.bonus_days }} hari.</span>
+                </span>
+            </div>
+            <p class="rounded-2xl bg-surface-2 p-4 text-lg break-all text-ink">{{ referral.url }}</p>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <BigButton variant="secondary" @click="copyReferral"><Copy :size="22" aria-hidden="true" /> {{ referralCopied ? 'Tersalin' : 'Salin Link' }}</BigButton>
+                <BigButton :href="referralWa" external><MessageCircle :size="22" aria-hidden="true" /> Bagikan ke WhatsApp</BigButton>
+            </div>
+            <p class="text-lg text-ink">Kode: <b>{{ referral.code }}</b> · {{ referral.joined }} usaha mendaftar · {{ referral.rewarded }} sudah berlangganan · bonus {{ referral.days }} hari</p>
+        </section>
 
         <section v-if="payments.length">
             <h2 class="mb-3 text-xl font-extrabold text-ink">Riwayat pembayaran</h2>

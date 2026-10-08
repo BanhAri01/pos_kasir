@@ -7,15 +7,19 @@ use App\Models\BusinessType;
 use App\Modules\Auth\Http\Requests\RegisterRequest;
 use App\Modules\Auth\Services\DeviceService;
 use App\Modules\Auth\Services\RegisterTenantService;
+use App\Modules\Billing\Services\ReferralService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisterController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request, ReferralService $referrals): Response
     {
+        $referrer = $referrals->findReferrer($request->query('ref'));
+
         $types = BusinessType::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -27,6 +31,12 @@ class RegisterController extends Controller
                 'label' => $label,
                 'types' => $types->where('category', $key)->values(),
             ])->values(),
+            'referral' => $referrer ? [
+                'code' => $referrer->referral_code,
+                'name' => $referrer->name,
+                'bonus_days' => (int) config('hermes.referral.new_tenant_bonus_days'),
+            ] : null,
+            'trialDays' => (int) config('hermes.trial_days'),
         ]);
     }
 

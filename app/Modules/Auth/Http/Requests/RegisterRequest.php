@@ -28,6 +28,7 @@ class RegisterRequest extends FormRequest
             'owner_name' => ['required', 'string', 'max:100'],
             'phone' => ['required', 'regex:/^628\d{7,12}$/', Rule::unique('users', 'phone')],
             'password' => ['required', 'string', 'min:6', 'max:100'],
+            'ref' => ['nullable', 'string', 'max:20'],
         ];
     }
 

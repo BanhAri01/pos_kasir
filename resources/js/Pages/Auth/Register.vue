@@ -16,6 +16,8 @@ defineOptions({ layout: GuestLayout });
 
 const props = defineProps({
     categories: { type: Array, required: true },
+    referral: { type: Object, default: null },
+    trialDays: { type: Number, default: 14 },
 });
 
 const step = ref(1);
@@ -26,6 +28,7 @@ const form = useForm({
     owner_name: '',
     phone: '',
     password: '',
+    ref: props.referral?.code ?? '',
 });
 
 const selectedType = computed(() =>
@@ -51,6 +54,10 @@ function submit() {
 
 <template>
     <Head title="Daftar" />
+
+    <p v-if="referral" class="mb-5 rounded-2xl bg-accent-soft p-4 text-lg font-bold text-accent-ink">
+        Diajak oleh {{ referral.name }}. Anda dapat bonus coba gratis {{ referral.bonus_days }} hari.
+    </p>
 
     <!-- Langkah 1: pilih jenis usaha -->
     <section v-if="step === 1">
@@ -146,7 +153,7 @@ function submit() {
             <BigButton type="submit" size="large" block :loading="form.processing" class="mt-2">
                 Daftar Sekarang
             </BigButton>
-            <p class="text-center text-base text-ink-soft">Gratis dicoba 14 hari. Tidak perlu kartu kredit.</p>
+            <p class="text-center text-base text-ink-soft">Gratis dicoba {{ trialDays + (referral?.bonus_days ?? 0) }} hari. Tidak perlu kartu kredit.</p>
         </form>
     </section>
 </template>

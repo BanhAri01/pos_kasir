@@ -9,6 +9,7 @@ use App\Models\BusinessType;
 use App\Models\Outlet;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Billing\Services\ReferralService;
 use App\Modules\Catalog\Services\SampleDataService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -58,6 +59,10 @@ class RegisterTenantService
             $owner->assignRole(Role::Owner->value);
 
             $tenant->update(['owner_id' => $owner->id]);
+
+            $referrals = app(ReferralService::class);
+            $referrals->codeFor($tenant);
+            $referrals->attach($tenant, $data['ref'] ?? null);
 
             $outlet = $this->context->runAs($tenant, function () use ($tenant, $owner) {
                 // Kebanyakan UMKM hanya punya satu tempat usaha, jadi outlet pertama
