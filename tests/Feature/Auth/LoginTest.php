@@ -60,7 +60,10 @@ it('tidak mengeluarkan akun yang dinonaktifkan dari halaman dalam', function () 
 
 it('mengarahkan tamu ke halaman masuk', function () {
     $this->get(route('dashboard'))->assertRedirect(route('login'));
-    $this->get('/')->assertRedirect(route('login'));
+});
+
+it('menampilkan halaman depan dengan daftar harga untuk tamu', function () {
+    $this->get('/')->assertOk()->assertInertia(fn ($page) => $page->component('Landing')->has('catalog.plans', 3));
 });
 
 it('bisa keluar', function () {

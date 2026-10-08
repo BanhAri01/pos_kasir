@@ -1,9 +1,18 @@
 <?php
 
+use App\Modules\Billing\Services\Plans;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-// Route tiap fitur ada di app/Modules/*/routes/web.php (dimuat oleh ModuleServiceProvider).
+Route::get('/', function () {
+    $user = auth()->user();
 
-Route::get('/', fn () => auth()->check()
-    ? redirect()->route('dashboard')
-    : redirect()->route('login'));
+    if ($user) {
+        return redirect()->route($user->is_super_admin ? 'admin.tenants.index' : 'dashboard');
+    }
+
+    return Inertia::render('Landing', [
+        'catalog' => Plans::catalog(),
+        'trialDays' => (int) config('hermes.trial_days'),
+    ]);
+})->name('home');
