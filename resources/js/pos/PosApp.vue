@@ -5,8 +5,8 @@
  *                  keranjang dibuka dari bawah.
  *  - Tablet/PC   : dua kolom: barang di kiri, keranjang di kanan.
  */
-import { computed, onMounted, ref } from 'vue';
-import { ArrowLeft, Banknote, ChevronUp, History, Lock, Menu, Printer, Repeat, RefreshCw, Store as StoreIcon } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { ArrowLeft, Banknote, ChevronUp, History, Lock, Menu, Printer, QrCode, Repeat, RefreshCw, Store as StoreIcon } from 'lucide-vue-next';
 import AppLogo from '@/Components/ui/AppLogo.vue';
 import BigButton from '@/Components/ui/BigButton.vue';
 import BottomSheet from '@/Components/ui/BottomSheet.vue';
@@ -30,10 +30,12 @@ import SyncStatus from './components/SyncStatus.vue';
 import { addToCart, cartCount, hasModule, loadBootstrap, store, totals } from './store';
 import KasbonPaySheet from './components/KasbonPaySheet.vue';
 import TablesSheet from './components/TablesSheet.vue';
+import SelfOrdersSheet from './components/SelfOrdersSheet.vue';
+import { selfOrders, startSelfOrderPolling, stopSelfOrderPolling } from './selfOrders';
 import { api } from './lib/api';
 import { syncState } from './lib/sync';
 
-const sheets = ref({ variant: false, tables: false, kasbon: false, cart: false, pay: false, item: false, customer: false, discount: false, history: false, cash: false, close: false, printer: false, menu: false });
+const sheets = ref({ variant: false, tables: false, kasbon: false, cart: false, pay: false, item: false, customer: false, discount: false, history: false, cash: false, close: false, printer: false, menu: false, selfOrders: false });
 const editing = ref({ line: null, product: null });
 const variantModel = ref(null);
 const kasbonCustomer = ref(null);
@@ -56,6 +58,13 @@ onMounted(() => {
 });
 
 const ready = computed(() => !store.loading && store.boot && !store.error);
+
+watch(
+    () => (ready.value && store.boot.shift ? store.boot.shift.uuid : null),
+    (shiftUuid) => (shiftUuid ? startSelfOrderPolling() : stopSelfOrderPolling()),
+    { immediate: true },
+);
+onBeforeUnmount(stopSelfOrderPolling);
 
 function onAdd(product) {
     // Model baju: pilih ukuran & warna dulu.
@@ -129,6 +138,17 @@ const menuItems = [
                 </div>
                 <div v-else class="flex-1" />
                 <SyncStatus v-if="ready" />
+                <button
+                    v-if="ready && store.boot.shift && hasModule('qr_order')"
+                    type="button"
+                    class="pressable relative flex min-h-12 items-center gap-2 rounded-xl px-3 text-base font-bold"
+                    :class="selfOrders.list.length ? 'bg-accent text-ink' : 'bg-surface-2 text-ink'"
+                    @click="sheets.selfOrders = true"
+                >
+                    <QrCode :size="22" aria-hidden="true" />
+                    <span class="hidden sm:inline">Pesanan QR</span>
+                    <span v-if="selfOrders.list.length" class="flex size-7 items-center justify-center rounded-full bg-danger text-sm font-extrabold text-white">{{ selfOrders.list.length }}</span>
+                </button>
                 <button
                     v-if="ready && store.boot.shift"
                     type="button"
@@ -218,6 +238,7 @@ const menuItems = [
             <PaymentSheet v-model:open="sheets.pay" @paid="onPaid" @customer="sheets.customer = true" />
             <CustomerSheet v-model:open="sheets.customer" @kasbon="openKasbon" />
             <TablesSheet v-if="hasModule('tables')" v-model:open="sheets.tables" />
+            <SelfOrdersSheet v-if="hasModule('qr_order')" v-model:open="sheets.selfOrders" />
             <KasbonPaySheet v-model:open="sheets.kasbon" :customer="kasbonCustomer" />
             <DiscountSheet v-model:open="sheets.discount" />
             <HistorySheet v-model:open="sheets.history" />

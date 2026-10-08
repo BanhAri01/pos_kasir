@@ -95,6 +95,23 @@ class MidtransGateway implements PaymentGateway
         );
     }
 
+    public function keyIsValid(): ?bool
+    {
+        try {
+            $response = $this->client($this->coreUrl())->get('/v2/CEK-KEY-'.Str::random(10).'/status');
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        $code = (string) $response->json('status_code', (string) $response->status());
+
+        return match (true) {
+            $code === '401' || $response->status() === 401 => false,
+            in_array($code, ['404', '200', '201', '407'], true) => true,
+            default => null,
+        };
+    }
+
     private function client(string $baseUrl): PendingRequest
     {
         if ($this->serverKey === '') {

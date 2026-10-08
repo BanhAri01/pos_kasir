@@ -103,8 +103,7 @@ class ModuleSeeder extends Seeder
 
         ['code' => 'qr_order', 'name' => 'Pesan Lewat QR di Meja', 'icon' => 'qr-code',
             'description' => 'Pelanggan scan QR di meja lalu pesan sendiri dari HP-nya.',
-            'depends_on' => ['tables'],
-            'available' => false], // belum tersedia: disembunyikan sampai fiturnya selesai
+            'depends_on' => ['tables']],
     ];
 
     public function run(): void

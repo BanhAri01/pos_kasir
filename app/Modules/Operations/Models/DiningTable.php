@@ -6,6 +6,7 @@ use App\Core\Tenancy\BelongsToTenant;
 use App\Models\Outlet;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 /** Meja di rumah makan / kedai. */
 class DiningTable extends Model
@@ -21,6 +22,18 @@ class DiningTable extends Model
             'capacity' => 'integer',
             'sort_order' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (DiningTable $table) {
+            $table->qr_token ??= self::newToken();
+        });
+    }
+
+    public static function newToken(): string
+    {
+        return Str::random(32);
     }
 
     public function outlet(): BelongsTo

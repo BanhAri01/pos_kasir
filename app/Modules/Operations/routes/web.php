@@ -7,8 +7,10 @@ use App\Modules\Operations\Http\Controllers\DiningTableController;
 use App\Modules\Operations\Http\Controllers\KitchenController;
 use App\Modules\Operations\Http\Controllers\MembershipController;
 use App\Modules\Operations\Http\Controllers\OrderBoardController;
+use App\Modules\Operations\Http\Controllers\PublicOrderController;
 use App\Modules\Operations\Http\Controllers\QueueController;
 use App\Modules\Operations\Http\Controllers\ReceivableController;
+use App\Modules\Operations\Http\Controllers\SelfOrderController;
 use App\Modules\Operations\Http\Controllers\ServiceNoteController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +21,12 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         Route::middleware('module:kitchen_display')->group(function () {
             Route::get('dapur', [KitchenController::class, 'index'])->name('kitchen.index');
             Route::post('dapur/{ticket}/lanjut', [KitchenController::class, 'advance'])->name('kitchen.advance');
+        });
+
+        Route::middleware('module:qr_order')->prefix('kasir/api/pesanan-qr')->name('self-orders.')->group(function () {
+            Route::get('/', [SelfOrderController::class, 'pending'])->middleware('throttle:120,1')->name('pending');
+            Route::post('{uuid}/terima', [SelfOrderController::class, 'accept'])->whereUuid('uuid')->name('accept');
+            Route::post('{uuid}/tolak', [SelfOrderController::class, 'reject'])->whereUuid('uuid')->name('reject');
         });
 
         Route::middleware('module:queue')->group(function () {
@@ -74,6 +82,13 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         Route::post('member/keanggotaan/{membership}/batal', [MembershipController::class, 'cancel'])->name('members.cancel');
     });
 
+    Route::middleware(['can:manage_business', 'module:qr_order'])->group(function () {
+        Route::get('pesan-qr', [SelfOrderController::class, 'settings'])->name('self-orders.settings');
+        Route::put('pesan-qr/bayar', [SelfOrderController::class, 'updatePayment'])->middleware('throttle:10,1')->name('self-orders.payment');
+        Route::get('pesan-qr/cetak', [SelfOrderController::class, 'printQr'])->name('self-orders.print');
+        Route::post('pesan-qr/{table}/ganti', [SelfOrderController::class, 'regenerate'])->name('self-orders.regenerate');
+    });
+
     Route::middleware(['can:manage_business', 'module:tables'])->group(function () {
         Route::get('meja', [DiningTableController::class, 'index'])->name('tables.index');
         Route::post('meja', [DiningTableController::class, 'store'])->name('tables.store');
@@ -88,3 +103,9 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         Route::post('komisi/{userId}/bayar', [CommissionController::class, 'pay'])->whereNumber('userId')->middleware('can:manage_business')->name('commissions.pay');
     });
 });
+
+Route::get('m/{token}', [PublicOrderController::class, 'show'])->where('token', '[A-Za-z0-9]{20,40}')->middleware('throttle:60,1')->name('self-order.show');
+Route::post('m/{token}', [PublicOrderController::class, 'store'])->where('token', '[A-Za-z0-9]{20,40}')->middleware('throttle:8,1')->name('self-order.store');
+Route::get('pesanan-saya/{uuid}', [PublicOrderController::class, 'status'])->whereUuid('uuid')->middleware('throttle:60,1')->name('self-order.status');
+Route::get('pesanan-saya/{uuid}/cek', [PublicOrderController::class, 'poll'])->whereUuid('uuid')->middleware('throttle:60,1')->name('self-order.poll');
+Route::post('webhook/midtrans/pesanan/{tenantUuid}', [PublicOrderController::class, 'webhook'])->whereUuid('tenantUuid')->middleware('throttle:120,1')->name('self-order.webhook');
