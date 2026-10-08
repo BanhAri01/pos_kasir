@@ -31,7 +31,7 @@ import { addToCart, cartCount, hasModule, loadBootstrap, store, totals } from '.
 import KasbonPaySheet from './components/KasbonPaySheet.vue';
 import TablesSheet from './components/TablesSheet.vue';
 import SelfOrdersSheet from './components/SelfOrdersSheet.vue';
-import { selfOrders, startSelfOrderPolling, stopSelfOrderPolling } from './selfOrders';
+import { selfOrders, selfOrdersEnabled, startSelfOrderPolling, stopSelfOrderPolling } from './selfOrders';
 import { api } from './lib/api';
 import { syncState } from './lib/sync';
 
@@ -139,14 +139,14 @@ const menuItems = [
                 <div v-else class="flex-1" />
                 <SyncStatus v-if="ready" />
                 <button
-                    v-if="ready && store.boot.shift && hasModule('qr_order')"
+                    v-if="ready && store.boot.shift && selfOrdersEnabled()"
                     type="button"
                     class="pressable relative flex min-h-12 items-center gap-2 rounded-xl px-3 text-base font-bold"
                     :class="selfOrders.list.length ? 'bg-accent text-ink' : 'bg-surface-2 text-ink'"
                     @click="sheets.selfOrders = true"
                 >
                     <QrCode :size="22" aria-hidden="true" />
-                    <span class="hidden sm:inline">Pesanan QR</span>
+                    <span class="hidden sm:inline">Pesanan Masuk</span>
                     <span v-if="selfOrders.list.length" class="flex size-7 items-center justify-center rounded-full bg-danger text-sm font-extrabold text-white">{{ selfOrders.list.length }}</span>
                 </button>
                 <button
@@ -238,7 +238,7 @@ const menuItems = [
             <PaymentSheet v-model:open="sheets.pay" @paid="onPaid" @customer="sheets.customer = true" />
             <CustomerSheet v-model:open="sheets.customer" @kasbon="openKasbon" />
             <TablesSheet v-if="hasModule('tables')" v-model:open="sheets.tables" />
-            <SelfOrdersSheet v-if="hasModule('qr_order')" v-model:open="sheets.selfOrders" />
+            <SelfOrdersSheet v-if="selfOrdersEnabled()" v-model:open="sheets.selfOrders" />
             <KasbonPaySheet v-model:open="sheets.kasbon" :customer="kasbonCustomer" />
             <DiscountSheet v-model:open="sheets.discount" />
             <HistorySheet v-model:open="sheets.history" />

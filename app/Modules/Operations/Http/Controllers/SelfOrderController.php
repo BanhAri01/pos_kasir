@@ -35,7 +35,7 @@ class SelfOrderController extends Controller
         $timezone = $this->context->get()->timezone;
 
         return response()->json([
-            'data' => $this->orders->pending($this->outlet->id($request->user()))->map(fn (SelfOrder $o) => $o->forCashier($timezone))->values(),
+            'data' => $this->orders->pending($this->outlet->id($request->user()))->map(fn (SelfOrder $o) => $this->cashierView($o, $timezone))->values(),
         ]);
     }
 
@@ -46,7 +46,7 @@ class SelfOrderController extends Controller
         $sale = $this->orders->accept($order, $request->user(), $data['shift_uuid'] ?? null);
 
         return response()->json([
-            'order' => $order->fresh('diningTable')->forCashier($this->context->get()->timezone),
+            'order' => $this->cashierView($order->fresh('diningTable'), $this->context->get()->timezone),
             'sale_uuid' => $sale?->uuid,
             'message' => $sale
                 ? "Pesanan {$order->code} sudah lunas lewat QRIS dan dikirim ke dapur."
@@ -149,6 +149,14 @@ class SelfOrderController extends Controller
         }
 
         return $tables;
+    }
+
+    private function cashierView(SelfOrder $order, string $timezone): array
+    {
+        return [
+            ...$order->forCashier($timezone),
+            'delivery_product_id' => $order->delivery_fee > 0 ? $this->orders->deliveryProduct()->id : null,
+        ];
     }
 
     private function find(Request $request, string $uuid): SelfOrder

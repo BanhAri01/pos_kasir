@@ -9,7 +9,10 @@ const props = defineProps({
     order: { type: Object, required: true },
     business: { type: String, required: true },
     menuUrl: { type: String, default: null },
+    storePhone: { type: String, default: null },
 });
+
+const storeWa = computed(() => (props.storePhone ? `https://wa.me/${props.storePhone}?text=${encodeURIComponent(`Halo, saya mau tanya pesanan ${props.order.code}.`)}` : null));
 
 const current = ref(props.order);
 let timer = null;
@@ -19,7 +22,7 @@ const state = computed(() => {
     if (o.status === 'rejected') return { icon: XCircle, tone: 'bg-danger-soft text-danger-ink', title: 'Pesanan tidak bisa diproses', text: o.reject_reason || 'Silakan tanya pelayan.' };
     if (o.pay_method === 'online' && o.payment_status === 'pending') return { icon: QrCode, tone: 'bg-warn-soft text-warn-ink', title: 'Menunggu pembayaran', text: 'Selesaikan pembayaran QRIS supaya pesanan dikirim ke kasir.' };
     if (o.status === 'new') return { icon: Clock, tone: 'bg-accent-soft text-accent-ink', title: 'Pesanan terkirim', text: 'Kasir sedang mengecek pesanan Anda. Halaman ini akan berubah sendiri.' };
-    return { icon: ChefHat, tone: 'bg-primary-soft text-primary-ink', title: 'Pesanan diterima', text: 'Pesanan sedang dibuatkan. Silakan tunggu di meja.' };
+    return { icon: ChefHat, tone: 'bg-primary-soft text-primary-ink', title: 'Pesanan diterima', text: o.order_type === 'delivery' ? 'Pesanan sedang disiapkan lalu diantar ke alamat Anda.' : o.order_type === 'take_away' ? 'Pesanan sedang disiapkan. Silakan ambil di toko.' : 'Pesanan sedang dibuatkan. Silakan tunggu di meja.' };
 });
 
 const finished = computed(() => current.value.status !== 'new' || ['expired', 'failed'].includes(current.value.payment_status));
@@ -44,7 +47,8 @@ onBeforeUnmount(() => clearInterval(timer));
     <Head :title="`Pesanan ${order.code}`" />
     <div class="min-h-dvh bg-page px-4 pt-safe pb-10">
         <main class="mx-auto flex max-w-xl flex-col gap-4 pt-6">
-            <p class="text-center text-lg font-bold text-ink-soft">{{ business }} · {{ current.table }}</p>
+            <p class="text-center text-lg font-bold text-ink-soft">{{ business }}<template v-if="current.table"> · {{ current.table }}</template></p>
+            <p v-if="current.address" class="text-center text-base text-ink-soft">Diantar ke: {{ current.address }}</p>
 
             <section class="flex flex-col items-center gap-2 rounded-3xl p-6 text-center" :class="state.tone">
                 <component :is="state.icon" :size="48" aria-hidden="true" />
@@ -72,11 +76,13 @@ onBeforeUnmount(() => clearInterval(timer));
                 <dl class="mt-2 border-t border-line pt-2 text-lg">
                     <div v-if="current.service_charge_amount" class="flex justify-between"><dt class="text-ink-soft">Biaya layanan</dt><dd class="text-ink">{{ formatRupiah(current.service_charge_amount) }}</dd></div>
                     <div v-if="current.tax_amount" class="flex justify-between"><dt class="text-ink-soft">Pajak</dt><dd class="text-ink">{{ formatRupiah(current.tax_amount) }}</dd></div>
+                    <div v-if="current.delivery_fee" class="flex justify-between"><dt class="text-ink-soft">Ongkos kirim</dt><dd class="text-ink">{{ formatRupiah(current.delivery_fee) }}</dd></div>
                     <div v-if="current.fee_amount" class="flex justify-between"><dt class="text-ink-soft">Biaya bayar QRIS</dt><dd class="text-ink">{{ formatRupiah(current.fee_amount) }}</dd></div>
                     <div class="flex justify-between font-extrabold"><dt class="text-ink">Total</dt><dd class="text-ink">{{ formatRupiah(current.total + current.fee_amount) }}</dd></div>
                 </dl>
             </section>
 
+            <BigButton v-if="storeWa" :href="storeWa" external variant="secondary" block>Hubungi Toko</BigButton>
             <BigButton v-if="menuUrl" :href="menuUrl" external variant="secondary" block>Pesan lagi</BigButton>
         </main>
     </div>

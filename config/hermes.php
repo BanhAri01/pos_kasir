@@ -45,7 +45,7 @@ return [
             'outlets' => 3,
             'staff' => 15,
             'whatsapp' => 500,
-            'highlights' => ['3 outlet', '15 karyawan', '500 pesan WhatsApp per bulan', 'Pesan lewat QR di meja + bayar QRIS', 'Layar dapur, komisi, member'],
+            'highlights' => ['3 outlet', '15 karyawan', '500 pesan WhatsApp per bulan', 'Pesan lewat QR di meja + toko online, bayar QRIS', 'Layar dapur, komisi, member'],
         ],
         'bisnis' => [
             'label' => 'Bisnis',
@@ -60,6 +60,7 @@ return [
 
     'plan_modules' => [
         'qr_order' => 'pro',
+        'online_order' => 'pro',
         'kitchen_display' => 'pro',
         'staff_commission' => 'pro',
         'membership' => 'pro',

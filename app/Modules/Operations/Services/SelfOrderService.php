@@ -2,6 +2,8 @@
 
 namespace App\Modules\Operations\Services;
 
+use App\Core\Support\Phone;
+use App\Core\Support\Rupiah;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Outlet;
 use App\Models\Tenant;
@@ -120,7 +122,6 @@ class SelfOrderService
 
     public function place(DiningTable $table, array $data, ?string $ip): SelfOrder
     {
-        $tenant = $this->context->get();
         $outlet = Outlet::query()->findOrFail($table->outlet_id);
 
         $open = SelfOrder::query()->where('table_id', $table->id)->where('status', 'new')
@@ -128,6 +129,48 @@ class SelfOrderService
         if ($open >= self::MAX_OPEN_PER_TABLE) {
             throw ValidationException::withMessages(['items' => 'Masih ada beberapa pesanan dari meja ini yang belum diproses. Tunggu sebentar atau panggil pelayan.']);
         }
+
+        return $this->build($outlet, $table, $data, $ip, ['order_type' => 'dine_in']);
+    }
+
+    public function isStoreOpen(Tenant $tenant, Outlet $outlet): bool
+    {
+        return $tenant->hasAccess() && $tenant->hasModule('online_order') && $outlet->online_open && ($outlet->online_pickup || $outlet->online_delivery);
+    }
+
+    public function placeOnline(Outlet $outlet, array $data, ?string $ip): SelfOrder
+    {
+        $phone = Phone::normalize($data['customer_phone'] ?? null);
+        if (! $phone) {
+            throw ValidationException::withMessages(['customer_phone' => 'No WhatsApp sepertinya salah. Contoh: 0812 3456 7890.']);
+        }
+
+        $delivery = ($data['order_type'] ?? 'take_away') === 'delivery';
+        if (($delivery && ! $outlet->online_delivery) || (! $delivery && ! $outlet->online_pickup)) {
+            throw ValidationException::withMessages(['order_type' => $delivery ? 'Toko ini sedang tidak melayani pesan antar.' : 'Toko ini sedang tidak melayani ambil sendiri.']);
+        }
+        if ($delivery && blank($data['address'] ?? null)) {
+            throw ValidationException::withMessages(['address' => 'Tulis alamat pengantaran.']);
+        }
+
+        $open = SelfOrder::query()->whereNull('table_id')->where('customer_phone', $phone)->where('status', 'new')
+            ->where('created_at', '>=', now()->subHours(2))->count();
+        if ($open >= self::MAX_OPEN_PER_TABLE) {
+            throw ValidationException::withMessages(['items' => 'Masih ada pesanan Anda yang belum diproses. Tunggu sebentar atau hubungi toko.']);
+        }
+
+        return $this->build($outlet, null, $data, $ip, [
+            'order_type' => $delivery ? 'delivery' : 'take_away',
+            'customer_phone' => $phone,
+            'address' => $delivery ? Str::limit(trim($data['address']), 300, '') : null,
+            'delivery_fee' => $delivery ? (int) $outlet->delivery_fee : 0,
+            'min_order' => (int) $outlet->online_min_order,
+        ]);
+    }
+
+    private function build(Outlet $outlet, ?DiningTable $table, array $data, ?string $ip, array $extra): SelfOrder
+    {
+        $tenant = $this->context->get();
 
         $payOnline = ($data['pay_method'] ?? 'cashier') === 'online';
         if ($payOnline && ! $this->onlinePaymentAvailable($tenant)) {
@@ -159,18 +202,29 @@ class SelfOrderService
             ];
         }
 
-        $totals = $this->calculator->calculate($lines, null, 0, $outlet->service_charge_bp, $outlet->tax_rate_bp, $outlet->tax_inclusive);
+        $itemsTotal = array_sum(array_column($lines, 'subtotal'));
+        if (($extra['min_order'] ?? 0) > 0 && $itemsTotal < $extra['min_order']) {
+            throw ValidationException::withMessages(['items' => 'Minimal pesanan '.Rupiah::format($extra['min_order']).'.']);
+        }
+
+        $deliveryFee = (int) ($extra['delivery_fee'] ?? 0);
+        $calcLines = $deliveryFee > 0 ? [...$lines, ['unit_price' => $deliveryFee, 'qty' => 1]] : $lines;
+        $totals = $this->calculator->calculate($calcLines, null, 0, $outlet->service_charge_bp, $outlet->tax_rate_bp, $outlet->tax_inclusive);
         $fee = $payOnline ? PaymentFee::feeFor($totals['total'], 'qris') : 0;
 
         $order = SelfOrder::create([
             'outlet_id' => $outlet->id,
-            'table_id' => $table->id,
+            'table_id' => $table?->id,
+            'order_type' => $extra['order_type'],
+            'customer_phone' => $extra['customer_phone'] ?? null,
+            'address' => $extra['address'] ?? null,
+            'delivery_fee' => $deliveryFee,
             'uuid' => (string) Str::uuid(),
-            'code' => 'Q'.Str::upper(Str::random(4)),
+            'code' => ($table ? 'Q' : 'T').Str::upper(Str::random(4)),
             'customer_name' => Str::limit(trim($data['customer_name']), 60, ''),
             'note' => filled($data['note'] ?? null) ? Str::limit(trim($data['note']), 200, '') : null,
             'items' => $lines,
-            'subtotal' => $totals['subtotal'],
+            'subtotal' => $itemsTotal,
             'service_charge_amount' => $totals['service_charge_amount'],
             'tax_amount' => $totals['tax_amount'],
             'total' => $totals['total'],
@@ -182,13 +236,13 @@ class SelfOrderService
         ]);
 
         if ($payOnline) {
-            $this->startPayment($tenant, $order, $table);
+            $this->startPayment($tenant, $order);
         }
 
         return $order;
     }
 
-    public function startPayment(Tenant $tenant, SelfOrder $order, DiningTable $table): void
+    public function startPayment(Tenant $tenant, SelfOrder $order): void
     {
         $gateway = $this->gateways->forTenant($tenant);
         $order->forceFill(['payment_reference' => 'QR-'.$tenant->id.'-'.$order->id.'-'.Str::upper(Str::random(5))])->save();
@@ -199,7 +253,10 @@ class SelfOrderService
             'price' => $line['unit_price'],
             'quantity' => $line['qty'],
         ], $order->items);
-        $extra = $order->total - $order->subtotal;
+        if ($order->delivery_fee > 0) {
+            $items[] = ['id' => 'ONGKIR', 'name' => 'Ongkos kirim', 'price' => $order->delivery_fee, 'quantity' => 1];
+        }
+        $extra = $order->total - $order->subtotal - $order->delivery_fee;
         if ($extra > 0) {
             $items[] = ['id' => 'PAJAK-LAYANAN', 'name' => 'Pajak & biaya layanan', 'price' => $extra, 'quantity' => 1];
         }
@@ -212,7 +269,7 @@ class SelfOrderService
                 reference: $order->payment_reference,
                 amount: $order->total + $order->fee_amount,
                 items: $items,
-                customer: ['name' => $order->customer_name],
+                customer: ['name' => $order->customer_name, 'phone' => $order->customer_phone],
                 enabledPayments: PaymentFee::enabledPayments('qris'),
                 finishUrl: route('self-order.status', $order->uuid),
                 notificationUrl: route('self-order.webhook', $tenant->uuid),
@@ -331,6 +388,39 @@ class SelfOrderService
         return $order;
     }
 
+    public function deliveryProduct(): Product
+    {
+        return Product::query()->where('code', 'ONGKIR')->first()
+            ?? Product::create([
+                'uuid' => (string) Str::uuid(),
+                'name' => 'Ongkos Kirim',
+                'code' => 'ONGKIR',
+                'type' => 'service',
+                'pricing_mode' => 'open_price',
+                'price' => 0,
+                'cost_price' => 0,
+                'track_stock' => false,
+                'is_active' => true,
+            ]);
+    }
+
+    public function saleNote(SelfOrder $order): string
+    {
+        $label = match ($order->order_type) {
+            'delivery' => 'Pesan antar',
+            'take_away' => 'Ambil sendiri',
+            default => 'Pesan lewat QR',
+        };
+
+        return mb_substr(implode(' · ', array_filter([
+            "{$label} {$order->code}",
+            $order->customer_name,
+            $order->customer_phone ? Phone::display($order->customer_phone) : null,
+            $order->address,
+            $order->note,
+        ])), 0, 255);
+    }
+
     private function recordPaidSale(SelfOrder $order, User $user, string $shiftUuid): Sale
     {
         $method = PaymentMethod::query()->where('is_active', true)->where('type', 'qris')->orderBy('sort_order')->first()
@@ -340,18 +430,23 @@ class SelfOrderService
         return app(SaleService::class)->record([
             'uuid' => (string) Str::uuid(),
             'shift_uuid' => $shiftUuid,
-            'order_type' => 'dine_in',
+            'order_type' => $order->order_type ?: 'dine_in',
             'table_id' => $order->table_id,
-            'note' => "Pesan lewat QR {$order->code} · {$order->customer_name}".($order->note ? " · {$order->note}" : ''),
+            'note' => $this->saleNote($order),
             'created_at' => now()->toIso8601String(),
             'send_to_kitchen' => true,
-            'items' => array_map(fn (array $line) => [
+            'items' => [...array_map(fn (array $line) => [
                 'product_id' => $line['product_id'],
                 'qty' => $line['qty'],
                 'unit_price' => $line['unit_price'],
                 'modifiers' => $line['modifier_ids'],
                 'note' => $line['note'],
-            ], $order->items),
+            ], $order->items), ...($order->delivery_fee > 0 ? [[
+                'product_id' => $this->deliveryProduct()->id,
+                'qty' => 1,
+                'unit_price' => $order->delivery_fee,
+                'note' => null,
+            ]] : [])],
             'payments' => [[
                 'uuid' => (string) Str::uuid(),
                 'payment_method_id' => $method->id,

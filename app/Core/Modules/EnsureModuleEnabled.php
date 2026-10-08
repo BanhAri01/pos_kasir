@@ -16,13 +16,15 @@ class EnsureModuleEnabled
 {
     public function __construct(private TenantContext $context) {}
 
-    public function handle(Request $request, Closure $next, string $code): Response
+    public function handle(Request $request, Closure $next, string ...$codes): Response
     {
         $tenant = $this->context->get();
 
-        if ($tenant && $tenant->hasModule($code)) {
+        if ($tenant && array_filter($codes, fn (string $code) => $tenant->hasModule($code))) {
             return $next($request);
         }
+
+        $code = $codes[0];
 
         $name = Module::query()->where('code', $code)->value('name') ?? 'ini';
         $message = "Fitur {$name} belum dinyalakan. Nyalakan dulu di menu Lainnya, lalu Atur Fitur.";

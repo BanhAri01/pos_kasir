@@ -8,15 +8,17 @@ export const selfOrders = reactive({ list: [], busy: null, seen: new Set(), read
 
 let timer = null;
 
+export const selfOrdersEnabled = () => hasModule('qr_order') || hasModule('online_order');
+
 export async function refreshSelfOrders() {
-    if (!store.boot?.shift || !hasModule('qr_order') || !navigator.onLine) return;
+    if (!store.boot?.shift || !selfOrdersEnabled() || !navigator.onLine) return;
     try {
         const { data } = await api.get(route('self-orders.pending'));
         const fresh = data.filter((o) => !selfOrders.seen.has(o.uuid));
         if (fresh.length && selfOrders.ready) {
             playTing();
             vibrate([120, 80, 120]);
-            showToast(`${fresh.length} pesanan QR baru masuk.`, 'info');
+            showToast(`${fresh.length} pesanan baru masuk.`, 'info');
         }
         data.forEach((o) => selfOrders.seen.add(o.uuid));
         selfOrders.list = data;
@@ -28,7 +30,7 @@ export async function refreshSelfOrders() {
 
 export function startSelfOrderPolling() {
     stopSelfOrderPolling();
-    if (!hasModule('qr_order')) return;
+    if (!selfOrdersEnabled()) return;
     refreshSelfOrders();
     timer = setInterval(() => {
         if (!document.hidden) refreshSelfOrders();
@@ -41,8 +43,9 @@ export function stopSelfOrderPolling() {
 }
 
 export async function acceptSelfOrder(order) {
-    if (!order.paid && store.cart.length && store.tableId !== order.table_id) {
-        if (store.tableId) {
+    const sameTable = order.table_id && store.tableId === order.table_id;
+    if (!order.paid && store.cart.length && !sameTable) {
+        if (store.tableId && order.table_id) {
             await saveToTable();
         } else {
             throw new Error('Selesaikan atau kosongkan keranjang dulu, lalu terima pesanan ini.');
@@ -75,7 +78,7 @@ async function loadIntoTable(order) {
     if (order.table_id) {
         if (store.tableId !== order.table_id) openTable(order.table_id);
     } else {
-        store.orderType = 'dine_in';
+        store.orderType = order.order_type === 'delivery' ? 'delivery' : 'take_away';
     }
 
     const missing = [];
@@ -88,8 +91,17 @@ async function loadIntoTable(order) {
         addToCart(product, { qty: item.qty, modifierIds: item.modifier_ids ?? [], note: item.note ?? '' });
     }
 
-    const tag = `QR ${order.code} (${order.customer_name})${order.note ? `: ${order.note}` : ''}`;
-    store.note = store.note ? `${store.note} · ${tag}` : tag;
+    if (order.delivery_fee > 0 && order.delivery_product_id) {
+        const ongkir = store.boot.products.find((p) => p.id === order.delivery_product_id)
+            ?? { id: order.delivery_product_id, name: 'Ongkos Kirim', unit: null, unit_allows_decimal: false, pricing_mode: 'open_price', image_url: null, is_membership: false };
+        const line = addToCart(ongkir, { qty: 1, unitPrice: order.delivery_fee });
+        line.unit_price = order.delivery_fee;
+        line.price_overridden = true;
+    }
+
+    const label = order.table_id ? 'QR' : order.order_type === 'delivery' ? 'Antar' : 'Ambil';
+    const tag = [`${label} ${order.code} (${order.customer_name})`, order.customer_phone, order.address, order.note].filter(Boolean).join(' · ');
+    store.note = (store.note ? `${store.note} · ${tag}` : tag).slice(0, 250);
 
     if (store.tableId) await saveToTable();
     if (missing.length) showToast(`Menu tidak ditemukan di kasir: ${missing.join(', ')}. Muat ulang kasir.`, 'error');

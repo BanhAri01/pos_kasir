@@ -6,6 +6,7 @@ use App\Modules\Operations\Http\Controllers\DeliveryController;
 use App\Modules\Operations\Http\Controllers\DiningTableController;
 use App\Modules\Operations\Http\Controllers\KitchenController;
 use App\Modules\Operations\Http\Controllers\MembershipController;
+use App\Modules\Operations\Http\Controllers\OnlineStoreController;
 use App\Modules\Operations\Http\Controllers\OrderBoardController;
 use App\Modules\Operations\Http\Controllers\PublicOrderController;
 use App\Modules\Operations\Http\Controllers\QueueController;
@@ -23,7 +24,7 @@ Route::middleware(['auth', 'tenant'])->group(function () {
             Route::post('dapur/{ticket}/lanjut', [KitchenController::class, 'advance'])->name('kitchen.advance');
         });
 
-        Route::middleware('module:qr_order')->prefix('kasir/api/pesanan-qr')->name('self-orders.')->group(function () {
+        Route::middleware('module:qr_order,online_order')->prefix('kasir/api/pesanan-qr')->name('self-orders.')->group(function () {
             Route::get('/', [SelfOrderController::class, 'pending'])->middleware('throttle:120,1')->name('pending');
             Route::post('{uuid}/terima', [SelfOrderController::class, 'accept'])->whereUuid('uuid')->name('accept');
             Route::post('{uuid}/tolak', [SelfOrderController::class, 'reject'])->whereUuid('uuid')->name('reject');
@@ -82,11 +83,18 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         Route::post('member/keanggotaan/{membership}/batal', [MembershipController::class, 'cancel'])->name('members.cancel');
     });
 
-    Route::middleware(['can:manage_business', 'module:qr_order'])->group(function () {
+    Route::middleware(['can:manage_business', 'module:qr_order,online_order'])->group(function () {
         Route::get('pesan-qr', [SelfOrderController::class, 'settings'])->name('self-orders.settings');
         Route::put('pesan-qr/bayar', [SelfOrderController::class, 'updatePayment'])->middleware('throttle:10,1')->name('self-orders.payment');
         Route::get('pesan-qr/cetak', [SelfOrderController::class, 'printQr'])->name('self-orders.print');
         Route::post('pesan-qr/{table}/ganti', [SelfOrderController::class, 'regenerate'])->name('self-orders.regenerate');
+    });
+
+    Route::middleware(['can:manage_business', 'module:online_order'])->group(function () {
+        Route::get('toko-online', [OnlineStoreController::class, 'edit'])->name('online-orders.edit');
+        Route::put('toko-online', [OnlineStoreController::class, 'update'])->name('online-orders.update');
+        Route::get('toko-online/poster', [OnlineStoreController::class, 'poster'])->name('online-orders.poster');
+        Route::post('toko-online/ganti-link', [OnlineStoreController::class, 'regenerate'])->name('online-orders.regenerate');
     });
 
     Route::middleware(['can:manage_business', 'module:tables'])->group(function () {
@@ -104,6 +112,8 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     });
 });
 
+Route::get('toko/{token}', [PublicOrderController::class, 'storefront'])->where('token', '[A-Za-z0-9]{20,40}')->middleware('throttle:60,1')->name('online-store.show');
+Route::post('toko/{token}', [PublicOrderController::class, 'storeOrder'])->where('token', '[A-Za-z0-9]{20,40}')->middleware('throttle:8,1')->name('online-store.order');
 Route::get('m/{token}', [PublicOrderController::class, 'show'])->where('token', '[A-Za-z0-9]{20,40}')->middleware('throttle:60,1')->name('self-order.show');
 Route::post('m/{token}', [PublicOrderController::class, 'store'])->where('token', '[A-Za-z0-9]{20,40}')->middleware('throttle:8,1')->name('self-order.store');
 Route::get('pesanan-saya/{uuid}', [PublicOrderController::class, 'status'])->whereUuid('uuid')->middleware('throttle:60,1')->name('self-order.status');

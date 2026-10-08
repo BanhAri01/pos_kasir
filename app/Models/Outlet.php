@@ -19,7 +19,8 @@ class Outlet extends Model
 
     protected $fillable = [
         'name', 'code', 'type', 'address', 'phone', 'receipt_header', 'receipt_footer', 'receipt_paper', 'document_paper',
-        'tax_rate_bp', 'tax_inclusive', 'service_charge_bp', 'settings', 'is_active',
+        'tax_rate_bp', 'tax_inclusive', 'service_charge_bp', 'settings', 'is_active', 'online_open', 'online_pickup',
+        'online_delivery', 'delivery_fee', 'online_min_order',
     ];
 
     protected function casts(): array
@@ -30,6 +31,11 @@ class Outlet extends Model
             'service_charge_bp' => 'integer',
             'settings' => 'array',
             'is_active' => 'boolean',
+            'online_open' => 'boolean',
+            'online_pickup' => 'boolean',
+            'online_delivery' => 'boolean',
+            'delivery_fee' => 'integer',
+            'online_min_order' => 'integer',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Operations\Models;
 
+use App\Core\Support\Phone;
 use App\Core\Tenancy\BelongsToTenant;
 use App\Models\Outlet;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ class SelfOrder extends Model
     use BelongsToTenant;
 
     protected $fillable = [
-        'outlet_id', 'table_id', 'uuid', 'code', 'customer_name', 'note', 'items', 'subtotal', 'service_charge_amount',
+        'outlet_id', 'table_id', 'order_type', 'customer_phone', 'address', 'delivery_fee', 'uuid', 'code', 'customer_name', 'note', 'items', 'subtotal', 'service_charge_amount',
         'tax_amount', 'total', 'fee_amount', 'pay_method', 'payment_status', 'payment_reference', 'payment_url',
         'payment_channel', 'payment_payload', 'paid_at', 'status', 'handled_by', 'handled_at', 'reject_reason', 'ip_address',
     ];
@@ -29,6 +30,7 @@ class SelfOrder extends Model
             'tax_amount' => 'integer',
             'total' => 'integer',
             'fee_amount' => 'integer',
+            'delivery_fee' => 'integer',
             'paid_at' => 'datetime',
             'handled_at' => 'datetime',
         ];
@@ -63,6 +65,10 @@ class SelfOrder extends Model
             'note' => $this->note,
             'table_id' => $this->table_id,
             'table' => $this->diningTable?->name,
+            'order_type' => $this->order_type,
+            'customer_phone' => $this->customer_phone ? Phone::display($this->customer_phone) : null,
+            'address' => $this->address,
+            'delivery_fee' => $this->delivery_fee,
             'items' => $this->items,
             'subtotal' => $this->subtotal,
             'total' => $this->total,
@@ -78,6 +84,9 @@ class SelfOrder extends Model
             'code' => $this->code,
             'customer_name' => $this->customer_name,
             'table' => $this->diningTable?->name,
+            'order_type' => $this->order_type,
+            'address' => $this->address,
+            'delivery_fee' => $this->delivery_fee,
             'items' => $this->items,
             'subtotal' => $this->subtotal,
             'service_charge_amount' => $this->service_charge_amount,

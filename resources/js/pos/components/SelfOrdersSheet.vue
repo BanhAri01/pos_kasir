@@ -33,12 +33,12 @@ async function reject() {
 </script>
 
 <template>
-    <BottomSheet v-model:open="open" title="Pesanan QR Masuk">
-        <p v-if="!selfOrders.list.length" class="py-8 text-center text-lg text-ink-soft">Belum ada pesanan baru dari meja.</p>
+    <BottomSheet v-model:open="open" title="Pesanan Masuk (QR & Online)">
+        <p v-if="!selfOrders.list.length" class="py-8 text-center text-lg text-ink-soft">Belum ada pesanan baru dari meja atau toko online.</p>
         <ul v-else class="flex flex-col gap-3">
             <li v-for="o in selfOrders.list" :key="o.uuid" class="rounded-2xl border-2 border-line p-4">
                 <div class="mb-2 flex flex-wrap items-center gap-2">
-                    <span class="rounded-xl bg-brand px-3 py-1 font-display text-lg font-extrabold text-accent">{{ o.table ?? 'Tanpa meja' }}</span>
+                    <span class="rounded-xl bg-brand px-3 py-1 font-display text-lg font-extrabold text-accent">{{ o.table ?? (o.order_type === 'delivery' ? 'Diantar' : 'Ambil sendiri') }}</span>
                     <span class="text-lg font-bold text-ink">{{ o.customer_name }}</span>
                     <span class="text-base text-ink-soft">{{ o.code }} · {{ o.time }}</span>
                     <span v-if="o.paid" class="ml-auto flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-base font-bold text-primary-ink"><BadgeCheck :size="18" aria-hidden="true" /> Lunas QRIS</span>
@@ -51,6 +51,7 @@ async function reject() {
                         <span v-if="l.note" class="block pl-6 text-base text-ink-soft">Catatan: {{ l.note }}</span>
                     </li>
                 </ul>
+                <p v-if="o.customer_phone || o.address" class="mb-2 rounded-xl bg-info-soft px-3 py-2 text-base text-info-ink">{{ [o.customer_phone, o.address].filter(Boolean).join(' · ') }}<template v-if="o.delivery_fee"> · ongkir {{ formatRupiah(o.delivery_fee) }}</template></p>
                 <p v-if="o.note" class="mb-2 rounded-xl bg-surface-2 px-3 py-2 text-base text-ink">Catatan: {{ o.note }}</p>
                 <p class="mb-3 font-display text-xl font-extrabold text-ink">{{ formatRupiah(o.total) }}</p>
 
@@ -69,7 +70,7 @@ async function reject() {
                         <X :size="22" aria-hidden="true" /> Tolak
                     </button>
                     <button type="button" class="pressable flex min-h-touch items-center justify-center gap-2 rounded-2xl bg-primary text-lg font-bold text-on-primary disabled:opacity-50" :disabled="selfOrders.busy === o.uuid" @click="accept(o)">
-                        <Check :size="22" aria-hidden="true" /> {{ o.paid ? 'Terima & Kirim ke Dapur' : 'Terima ke Meja' }}
+                        <Check :size="22" aria-hidden="true" /> {{ o.paid ? 'Terima & Kirim ke Dapur' : o.table ? 'Terima ke Meja' : 'Terima ke Keranjang' }}
                     </button>
                 </div>
             </li>

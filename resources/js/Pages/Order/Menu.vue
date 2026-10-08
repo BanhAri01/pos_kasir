@@ -17,7 +17,11 @@ const props = defineProps({
     online: { type: Boolean, default: false },
     qrisFee: { type: Object, default: null },
     feeVatBp: { type: Number, default: 0 },
+    mode: { type: String, default: 'table' },
+    store: { type: Object, default: null },
 });
+
+const isStore = props.mode === 'store';
 
 const STORAGE_KEY = `hermes.order.${props.token}`;
 const category = ref(null);
@@ -25,7 +29,17 @@ const cart = ref(loadCart());
 const picking = ref(null);
 const choice = reactive({ qty: 1, modifiers: {}, note: '' });
 const checkoutOpen = ref(false);
-const form = useForm({ customer_name: loadName(), note: '', pay_method: props.online ? 'online' : 'cashier', items: [] });
+const form = useForm({
+    customer_name: loadName(),
+    customer_phone: loadSaved('hermes.order.phone'),
+    order_type: isStore && !props.store?.pickup ? 'delivery' : 'take_away',
+    address: loadSaved('hermes.order.address'),
+    note: '',
+    pay_method: props.online ? 'online' : 'cashier',
+    items: [],
+});
+const deliveryFee = computed(() => (isStore && form.order_type === 'delivery' ? props.store?.delivery_fee ?? 0 : 0));
+const belowMinimum = computed(() => isStore && (props.store?.min_order ?? 0) > subtotal.value);
 
 const productsById = computed(() => Object.fromEntries(props.menu.products.map((p) => [p.id, p])));
 const visibleProducts = computed(() => (category.value ? props.menu.products.filter((p) => p.category_id === category.value) : props.menu.products));
@@ -33,14 +47,14 @@ const count = computed(() => cart.value.reduce((s, l) => s + l.qty, 0));
 const subtotal = computed(() => cart.value.reduce((s, l) => s + l.unit_price * l.qty, 0));
 
 const totals = computed(() => {
-    const base = subtotal.value;
+    const base = subtotal.value + deliveryFee.value;
     const service = Math.round((base * props.charges.service_charge_bp) / 10000);
     const taxable = base + service;
     const tax = props.charges.tax_inclusive
         ? props.charges.tax_bp > 0 ? Math.round((taxable * props.charges.tax_bp) / (10000 + props.charges.tax_bp)) : 0
         : Math.round((taxable * props.charges.tax_bp) / 10000);
     const total = props.charges.tax_inclusive ? taxable : taxable + tax;
-    return { base, service, tax, total };
+    return { base: subtotal.value, delivery: deliveryFee.value, service, tax, total };
 });
 
 const fee = computed(() => {
@@ -60,11 +74,28 @@ function loadCart() {
     }
 }
 
+function loadSaved(key) {
+    try {
+        return localStorage.getItem(key) ?? '';
+    } catch {
+        return '';
+    }
+}
+
 function loadName() {
     try {
         return localStorage.getItem('hermes.order.name') ?? '';
     } catch {
         return '';
+    }
+}
+
+function rememberValue(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch {
+        return false;
     }
 }
 
@@ -142,8 +173,12 @@ const qtyInCart = (productId) => cart.value.filter((l) => l.product_id === produ
 
 function submit() {
     saveName(form.customer_name.trim());
+    if (isStore) {
+        rememberValue('hermes.order.phone', form.customer_phone.trim());
+        if (form.order_type === 'delivery') rememberValue('hermes.order.address', form.address.trim());
+    }
     form.items = cart.value.map((l) => ({ product_id: l.product_id, qty: l.qty, modifier_ids: l.modifier_ids, note: l.note || null }));
-    form.post(route('self-order.store', props.token), {
+    form.post(route(isStore ? 'online-store.order' : 'self-order.store', props.token), {
         preserveScroll: true,
         onSuccess: () => {
             cart.value = [];
@@ -164,7 +199,7 @@ function submit() {
                     <h1 class="truncate font-display text-2xl font-extrabold">{{ business.name }}</h1>
                     <p class="truncate text-base text-white/80">{{ business.outlet }}</p>
                 </div>
-                <span class="shrink-0 rounded-2xl bg-accent px-3 py-2 text-center text-ink">
+                <span v-if="!isStore" class="shrink-0 rounded-2xl bg-accent px-3 py-2 text-center text-ink">
                     <span class="block text-sm font-bold">Meja</span>
                     <span class="block font-display text-xl leading-none font-extrabold">{{ table.replace(/^Meja\s*/i, '') }}</span>
                 </span>
@@ -174,8 +209,8 @@ function submit() {
         <main class="mx-auto max-w-2xl px-4">
             <section v-if="!open" class="card mt-6 flex flex-col items-center gap-3 p-8 text-center">
                 <UtensilsCrossed :size="44" class="text-ink-soft" aria-hidden="true" />
-                <h2 class="text-2xl font-extrabold text-ink">Pesan lewat QR sedang tidak aktif</h2>
-                <p class="text-lg text-ink-soft">Silakan panggil pelayan atau pesan langsung di kasir.</p>
+                <h2 class="text-2xl font-extrabold text-ink">{{ isStore ? 'Toko sedang tutup' : 'Pesan lewat QR sedang tidak aktif' }}</h2>
+                <p class="text-lg text-ink-soft">{{ isStore ? 'Silakan coba lagi nanti atau hubungi toko.' : 'Silakan panggil pelayan atau pesan langsung di kasir.' }}</p>
             </section>
 
             <template v-else>
@@ -270,7 +305,21 @@ function submit() {
 
             <div class="flex flex-col gap-4">
                 <BigInput v-model="form.customer_name" label="Nama Anda" placeholder="Contoh: Dewi" :maxlength="60" :error="form.errors.customer_name" />
-                <BigInput v-model="form.note" label="Catatan untuk dapur" optional placeholder="Contoh: es dipisah" :maxlength="200" />
+                <template v-if="isStore">
+                    <BigInput v-model="form.customer_phone" label="No WhatsApp" type="tel" inputmode="tel" placeholder="0812 3456 7890" :maxlength="20" :error="form.errors.customer_phone" />
+                    <div v-if="store.pickup && store.delivery" class="grid grid-cols-2 gap-2">
+                        <button type="button" class="pressable min-h-touch rounded-2xl border-2 text-lg font-bold" :class="form.order_type === 'take_away' ? 'border-primary bg-primary-soft text-primary-ink' : 'border-line text-ink'" @click="form.order_type = 'take_away'">Ambil sendiri</button>
+                        <button type="button" class="pressable min-h-touch rounded-2xl border-2 text-lg font-bold" :class="form.order_type === 'delivery' ? 'border-primary bg-primary-soft text-primary-ink' : 'border-line text-ink'" @click="form.order_type = 'delivery'">Diantar</button>
+                    </div>
+                    <p v-else class="rounded-2xl bg-surface-2 p-3 text-lg font-bold text-ink">{{ form.order_type === 'delivery' ? 'Pesanan diantar ke alamat Anda' : 'Pesanan diambil sendiri di toko' }}</p>
+                    <label v-if="form.order_type === 'delivery'" class="block">
+                        <span class="mb-2 block text-lg font-bold text-ink">Alamat lengkap</span>
+                        <textarea v-model="form.address" rows="3" maxlength="300" placeholder="Nama jalan, nomor rumah, patokan" class="w-full rounded-2xl border-2 border-line bg-surface p-4 text-lg text-ink"></textarea>
+                        <span v-if="form.errors.address" class="mt-1 block text-base font-bold text-danger-ink">{{ form.errors.address }}</span>
+                    </label>
+                    <p v-if="form.errors.order_type" class="text-lg font-bold text-danger-ink">{{ form.errors.order_type }}</p>
+                </template>
+                <BigInput v-model="form.note" :label="isStore ? 'Catatan pesanan' : 'Catatan untuk dapur'" optional placeholder="Contoh: es dipisah" :maxlength="200" />
 
                 <div v-if="online">
                     <p class="mb-2 text-lg font-bold text-ink">Cara bayar</p>
@@ -281,13 +330,14 @@ function submit() {
                         </button>
                         <button type="button" class="pressable flex items-center gap-3 rounded-2xl border-2 p-3 text-left" :class="form.pay_method === 'cashier' ? 'border-primary bg-primary-soft' : 'border-line'" @click="form.pay_method = 'cashier'">
                             <Store :size="26" class="shrink-0 text-ink" aria-hidden="true" />
-                            <span><span class="block text-lg font-bold text-ink">Bayar di kasir</span><span class="block text-base text-ink-soft">Setelah selesai makan</span></span>
+                            <span><span class="block text-lg font-bold text-ink">{{ isStore ? (form.order_type === 'delivery' ? 'Bayar saat diantar' : 'Bayar saat ambil') : 'Bayar di kasir' }}</span><span class="block text-base text-ink-soft">{{ isStore ? 'Tunai atau QRIS toko' : 'Setelah selesai makan' }}</span></span>
                         </button>
                     </div>
                 </div>
 
                 <dl class="rounded-2xl bg-surface-2 p-4 text-lg">
                     <div class="flex justify-between"><dt class="text-ink-soft">Subtotal</dt><dd class="font-bold text-ink">{{ formatRupiah(totals.base) }}</dd></div>
+                    <div v-if="totals.delivery" class="flex justify-between"><dt class="text-ink-soft">Ongkos kirim</dt><dd class="font-bold text-ink">{{ formatRupiah(totals.delivery) }}</dd></div>
                     <div v-if="totals.service" class="flex justify-between"><dt class="text-ink-soft">Biaya layanan</dt><dd class="font-bold text-ink">{{ formatRupiah(totals.service) }}</dd></div>
                     <div v-if="totals.tax" class="flex justify-between"><dt class="text-ink-soft">Pajak{{ charges.tax_inclusive ? ' (sudah termasuk)' : '' }}</dt><dd class="font-bold text-ink">{{ formatRupiah(totals.tax) }}</dd></div>
                     <div v-if="fee" class="flex justify-between"><dt class="text-ink-soft">Biaya bayar QRIS</dt><dd class="font-bold text-ink">{{ formatRupiah(fee) }}</dd></div>
@@ -296,10 +346,11 @@ function submit() {
 
                 <p v-if="form.errors.items" class="text-lg font-bold text-danger-ink">{{ form.errors.items }}</p>
                 <p v-if="form.errors.pay_method" class="text-lg font-bold text-danger-ink">{{ form.errors.pay_method }}</p>
-                <BigButton block size="large" :loading="form.processing" :disabled="!cart.length" @click="submit">
+                <BigButton block size="large" :loading="form.processing" :disabled="!cart.length || belowMinimum" @click="submit">
                     {{ form.pay_method === 'online' ? `Pesan & Bayar ${formatRupiah(totals.total + fee)}` : 'Kirim Pesanan' }}
                 </BigButton>
-                <p class="text-center text-base text-ink-soft">Pesanan akan dicek kasir lalu dibuatkan.</p>
+                <p v-if="belowMinimum" class="text-center text-lg font-bold text-danger-ink">Minimal pesanan {{ formatRupiah(store.min_order) }}.</p>
+                <p class="text-center text-base text-ink-soft">{{ isStore ? 'Toko akan mengecek pesanan Anda. Simpan halaman berikutnya untuk melihat status.' : 'Pesanan akan dicek kasir lalu dibuatkan.' }}</p>
             </div>
         </BottomSheet>
     </div>
