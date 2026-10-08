@@ -47,6 +47,7 @@ function submit() {
             :error="form.errors.password"
         />
         <BigButton type="submit" size="large" block :loading="form.processing">Masuk</BigButton>
+        <Link :href="route('password.forgot')" class="self-center text-lg font-bold text-primary-ink underline underline-offset-4">Lupa kata sandi?</Link>
     </form>
 
     <div v-if="canUsePin" class="card mt-8 p-5">

@@ -17,6 +17,7 @@ const props = defineProps({
     size: { type: String, default: 'normal' }, // normal | large
     loading: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
+    external: { type: Boolean, default: false },
 });
 
 const classes = computed(() => [
@@ -35,7 +36,10 @@ const classes = computed(() => [
 </script>
 
 <template>
-    <Link v-if="href" :href="href" :method="method" :as="method ? 'button' : 'a'" :class="classes">
+    <a v-if="href && external" :href="href" target="_blank" rel="noopener" :class="classes">
+        <slot />
+    </a>
+    <Link v-else-if="href" :href="href" :method="method" :as="method ? 'button' : 'a'" :class="classes">
         <slot />
     </Link>
     <button v-else :type="type" :class="classes" :disabled="disabled || loading" :aria-busy="loading">

@@ -4,6 +4,7 @@ use App\Modules\Auth\Http\Controllers\LoginController;
 use App\Modules\Auth\Http\Controllers\PinLoginController;
 use App\Modules\Auth\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware('guest')->group(function () {
     Route::get('daftar', [RegisterController::class, 'create'])->name('register');
@@ -12,6 +13,7 @@ Route::middleware('guest')->group(function () {
         ->name('register.store');
 
     Route::get('masuk', [LoginController::class, 'create'])->name('login');
+    Route::get('lupa-sandi', fn () => Inertia::render('Auth/ForgotPassword'))->name('password.forgot');
     Route::post('masuk', [LoginController::class, 'store'])->name('login.store');
 
     Route::get('masuk-pin', [PinLoginController::class, 'create'])->name('pin.create');

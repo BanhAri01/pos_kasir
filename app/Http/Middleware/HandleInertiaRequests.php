@@ -70,6 +70,8 @@ class HandleInertiaRequests extends Middleware
                 'undo' => fn () => $request->session()->get('undo'),
             ],
             'adminWhatsapp' => config('hermes.admin_whatsapp'),
+            'impersonating' => $request->hasSession() && $request->session()->has('impersonator_id'),
+            'isSuperAdmin' => (bool) $user?->is_super_admin,
             'isLocal' => app()->environment('local'),
         ];
     }

@@ -33,6 +33,10 @@ const chip = computed(() => {
         <SideNav />
 
         <div class="sticky top-0 z-20">
+            <div v-if="$page.props.impersonating" class="flex flex-wrap items-center justify-center gap-3 bg-brand px-4 py-2 text-base font-bold text-white">
+                Mode admin: Anda sedang masuk sebagai pemilik usaha ini.
+                <Link :href="route('admin.impersonate.leave')" method="post" as="button" class="rounded-full bg-accent px-3 py-1 text-ink">Kembali ke Admin</Link>
+            </div>
             <!-- Bar atas (HP & tablet) -->
             <header class="border-b border-line bg-surface pt-safe lg:hidden">
                 <div class="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3">

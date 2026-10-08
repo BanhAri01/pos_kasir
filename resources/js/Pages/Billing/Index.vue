@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { BadgeCheck, CalendarClock, Check, CreditCard, MessageCircle, QrCode, ShieldAlert } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -21,7 +21,6 @@ const props = defineProps({
 
 const page = usePage();
 const form = useForm({ plan: props.subscription.plan, months: 1, channel: 'qris' });
-const confirmOpen = ref(false);
 
 const selectedPlan = computed(() => props.catalog.plans.find((p) => p.key === form.plan));
 const options = computed(() => selectedPlan.value?.options?.[form.months] ?? []);
@@ -51,7 +50,7 @@ const usageRows = computed(() => [
 ]);
 
 function pay() {
-    form.post(route('billing.checkout'), { onFinish: () => (confirmOpen.value = false) });
+    form.post(route('billing.checkout'));
 }
 </script>
 
@@ -143,7 +142,7 @@ function pay() {
 
             <template v-else>
                 <p class="rounded-2xl bg-surface-2 p-4 text-lg text-ink">Bayar online sedang disiapkan. Untuk sekarang, hubungi admin lewat WhatsApp untuk berlangganan.</p>
-                <BigButton :href="adminUrl" variant="secondary" block><MessageCircle :size="22" aria-hidden="true" /> Hubungi Admin</BigButton>
+                <BigButton :href="adminUrl" external variant="secondary" block><MessageCircle :size="22" aria-hidden="true" /> Hubungi Admin</BigButton>
             </template>
         </section>
 

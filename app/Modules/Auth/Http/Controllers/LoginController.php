@@ -35,6 +35,10 @@ class LoginController extends Controller
             $devices->remember($request, $user);
         }
 
+        if ($user->is_super_admin) {
+            return redirect()->route('admin.tenants.index');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 
