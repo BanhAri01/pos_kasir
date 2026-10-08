@@ -6,6 +6,8 @@
  * - Laptop (>= 1024px): menu samping di kiri, tanpa navigasi bawah.
  * Status internet (OfflineBanner) menempel di bawah bar atas, selalu terlihat.
  */
+import { computed } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import { useAuth } from '@/composables/useAuth';
 import AppLogo from '@/Components/ui/AppLogo.vue';
 import BottomNav from '@/Components/ui/BottomNav.vue';
@@ -15,6 +17,15 @@ import OutletSwitcher from '@/Components/ui/OutletSwitcher.vue';
 import SideNav from '@/Components/ui/SideNav.vue';
 
 const { user, tenant } = useAuth();
+
+const chip = computed(() => {
+    const s = tenant.value?.subscription;
+    if (!s || s.days_left === null) return null;
+    if (s.in_grace) return { text: `Langganan lewat, sisa ${s.grace_days_left} hari`, warn: true };
+    if (s.on_trial) return { text: `Coba gratis ${s.days_left} hari`, warn: s.days_left <= 3 };
+    if (s.days_left <= 7) return { text: `Paket ${s.plan_label} habis ${s.days_left} hari lagi`, warn: true };
+    return null;
+});
 </script>
 
 <template>
@@ -30,12 +41,14 @@ const { user, tenant } = useAuth();
                         <p class="truncate font-display text-lg leading-tight font-extrabold text-ink">{{ tenant?.name }}</p>
                         <p class="truncate text-base text-ink-soft">{{ user?.name }} · {{ user?.role_label }}</p>
                     </div>
-                    <span
-                        v-if="tenant?.trial_days_left > 0"
-                        class="hidden shrink-0 rounded-full bg-accent-soft px-3 py-1 text-base font-bold text-accent-ink sm:inline"
+                    <Link
+                        v-if="chip"
+                        :href="route('billing.index')"
+                        class="shrink-0 rounded-full px-3 py-1 text-base font-bold"
+                        :class="chip.warn ? 'bg-danger-soft text-danger-ink' : 'hidden bg-accent-soft text-accent-ink sm:inline'"
                     >
-                        Coba gratis {{ tenant.trial_days_left }} hari
-                    </span>
+                        {{ chip.text }}
+                    </Link>
                 </div>
                 <div v-if="$page.props.outlet?.list?.length > 1" class="mx-auto max-w-3xl px-4 pb-3">
                     <OutletSwitcher />
@@ -49,9 +62,14 @@ const { user, tenant } = useAuth();
                         <p class="font-display text-xl font-extrabold text-ink">{{ tenant?.name }}</p>
                         <OutletSwitcher />
                     </div>
-                    <span v-if="tenant?.trial_days_left > 0" class="rounded-full bg-accent-soft px-4 py-1 text-base font-bold text-accent-ink">
-                        Masa coba gratis: {{ tenant.trial_days_left }} hari lagi
-                    </span>
+                    <Link
+                        v-if="chip"
+                        :href="route('billing.index')"
+                        class="rounded-full px-4 py-1 text-base font-bold"
+                        :class="chip.warn ? 'bg-danger-soft text-danger-ink' : 'bg-accent-soft text-accent-ink'"
+                    >
+                        {{ chip.text }}
+                    </Link>
                 </div>
             </header>
 

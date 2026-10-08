@@ -2,8 +2,10 @@
 
 namespace App\Modules\Outlet\Http\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Outlet;
+use App\Modules\Billing\Services\PlanGuard;
 use App\Modules\Outlet\Http\Requests\OutletRequest;
 use App\Modules\Outlet\Http\Resources\OutletResource;
 use App\Modules\Outlet\Services\OutletService;
@@ -34,8 +36,9 @@ class OutletController extends Controller
     }
 
     // store & update: izin sudah dicek di OutletRequest::authorize().
-    public function store(OutletRequest $request): RedirectResponse
+    public function store(OutletRequest $request, PlanGuard $guard, TenantContext $context): RedirectResponse
     {
+        $guard->ensureCanAddOutlet($context->get());
         $outlet = $this->service->create($request->outletData(), $request->user());
 
         return redirect()->route('outlets.index')->with('success', "Outlet {$outlet->name} sudah disimpan.");

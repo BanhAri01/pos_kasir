@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureActiveTenant
 {
+    public const OPEN_WHEN_EXPIRED = ['billing.*', 'logout', 'switch-user', 'more', 'preferences.*', 'pos.api.sync', 'admin.impersonate.leave'];
+
     public function __construct(private TenantContext $context) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -28,7 +30,11 @@ class EnsureActiveTenant
         };
 
         if ($message === null) {
-            return $next($request);
+            if ($tenant->hasAccess() || $request->routeIs(...self::OPEN_WHEN_EXPIRED)) {
+                return $next($request);
+            }
+
+            return $this->expired($request, $user->isOwner());
         }
 
         Auth::guard('web')->logout();
@@ -40,5 +46,18 @@ class EnsureActiveTenant
         }
 
         return redirect()->route('login')->with('error', $message);
+    }
+
+    private function expired(Request $request, bool $owner): Response
+    {
+        $message = $owner
+            ? 'Masa langganan sudah habis. Perpanjang dulu supaya bisa jualan lagi. Data Anda tetap aman.'
+            : 'Masa langganan usaha ini sudah habis. Minta pemilik usaha memperpanjang langganan.';
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message, 'expired' => true], 402);
+        }
+
+        return redirect()->route('billing.index')->with('error', $message);
     }
 }

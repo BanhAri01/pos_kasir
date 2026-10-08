@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import {
     Armchair, Bike, Boxes, Calculator, CalendarDays, ChefHat, CreditCard, HandCoins, House, IdCard, LayoutGrid, ListChecks, ListOrdered,
     MessageCircle, NotebookPen, Package, Palette, ReceiptText, SlidersHorizontal, Store, Tags, Truck, UserRound, Users, Wallet, ChartColumn,
-    BadgePercent, CalendarClock, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse,
+    BadgePercent, CalendarClock, Crown, QrCode, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse,
 } from 'lucide-vue-next';
 import { useAuth } from './useAuth';
 
@@ -40,7 +40,7 @@ export function useNavigation() {
                 label: 'Lainnya',
                 href: route('more'),
                 icon: LayoutGrid,
-                match: ['more', 'outlets.*', 'staff.*', 'modules.*', 'preferences.*', 'dev.*', 'customers.*', 'payment-methods.*', ...businessRoutes],
+                match: ['more', 'outlets.*', 'staff.*', 'modules.*', 'preferences.*', 'billing.*', 'self-orders.*', 'dev.*', 'customers.*', 'payment-methods.*', ...businessRoutes],
                 mobileOnly: true,
                 show: true,
             },
@@ -54,6 +54,7 @@ export function useNavigation() {
             { key: 'outlets', label: 'Outlet / Cabang', description: 'Tempat usaha, pajak, dan struk', href: route('outlets.index'), icon: Store, match: ['outlets.*'], show: can('manage_outlets') },
             { key: 'payment-methods', label: 'Cara Bayar', description: 'Tunai, QRIS, transfer, e-wallet', href: route('payment-methods.index'), icon: CreditCard, match: ['payment-methods.*'], show: can('manage_business') },
             { key: 'modules', label: 'Atur Fitur', description: 'Nyalakan atau matikan fitur', href: route('modules.index'), icon: SlidersHorizontal, match: ['modules.*'], show: can('manage_modules') },
+            { key: 'billing', label: 'Langganan', description: 'Paket, masa aktif, dan pembayaran', href: route('billing.index'), icon: Crown, match: ['billing.*'], show: true },
             { key: 'display', label: 'Tampilan & Suara', description: 'Ukuran huruf, mode gelap, suara', href: route('preferences.edit'), icon: Palette, match: ['preferences.*'], show: true },
         ].filter((item) => item.show),
     );

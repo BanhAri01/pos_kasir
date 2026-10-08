@@ -8,6 +8,7 @@ use App\Core\Tenancy\TenantContext;
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
 use App\Models\Module;
+use App\Modules\Billing\Services\Plans;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,6 +40,7 @@ class ModuleSettingController extends Controller
             'icon' => $m->icon,
             'enabled' => in_array($m->code, $enabled, true),
             'recommended' => in_array($m->code, $recommended, true),
+            'required_plan' => $tenant->planAllowsModule($m->code) ? null : Plans::label(Plans::requiredForModule($m->code)),
         ];
 
         return Inertia::render('Settings/Modules', [

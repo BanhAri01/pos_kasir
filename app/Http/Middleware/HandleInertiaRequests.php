@@ -45,6 +45,13 @@ class HandleInertiaRequests extends Middleware
                 'pos_layout' => $tenant->businessType?->pos_layout,
                 'timezone_label' => $tenant->timezoneLabel(),
                 'trial_days_left' => $tenant->trialDaysLeft(),
+                'subscription' => [
+                    'plan_label' => $tenant->planLabel(),
+                    'on_trial' => $tenant->status === 'trial',
+                    'days_left' => $tenant->daysLeft(),
+                    'in_grace' => $tenant->isInGrace(),
+                    'grace_days_left' => $tenant->graceDaysLeft(),
+                ],
                 'modules' => $tenant->enabledModuleCodes(),
             ] : null,
             // Outlet aktif + daftar outlet yang boleh dipilih (untuk tombol ganti outlet).

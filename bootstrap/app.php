@@ -30,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // supaya {outlet} milik usaha lain langsung 404.
         $middleware->prependToPriorityList(SubstituteBindings::class, SetTenantContext::class);
 
+        $middleware->validateCsrfTokens(except: ['webhook/*']);
+
         $middleware->alias([
             'tenant' => EnsureActiveTenant::class,
             'module' => EnsureModuleEnabled::class,

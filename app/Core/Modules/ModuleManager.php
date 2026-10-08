@@ -4,6 +4,7 @@ namespace App\Core\Modules;
 
 use App\Models\Module;
 use App\Models\Tenant;
+use App\Modules\Billing\Services\Plans;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -38,12 +39,14 @@ class ModuleManager
     public function enable(Tenant $tenant, string $code): array
     {
         $module = $this->findToggleable($code);
+        $this->ensurePlanAllows($tenant, $module);
         $alsoEnabled = [];
 
         DB::transaction(function () use ($tenant, $module, &$alsoEnabled) {
             foreach ($module->depends_on ?? [] as $dependencyCode) {
                 if (! $tenant->hasModule($dependencyCode)) {
                     $dependency = $this->findToggleable($dependencyCode);
+                    $this->ensurePlanAllows($tenant, $dependency);
                     $this->setEnabled($tenant, $dependency, true);
                     $alsoEnabled[] = $dependency->name;
                 }
@@ -91,6 +94,15 @@ class ModuleManager
         ]);
 
         $tenant->flushModuleCache();
+    }
+
+    private function ensurePlanAllows(Tenant $tenant, Module $module): void
+    {
+        if (! $tenant->planAllowsModule($module->code)) {
+            $required = Plans::label(Plans::requiredForModule($module->code));
+
+            throw new ModuleException("Fitur {$module->name} tersedia mulai paket {$required}. Naikkan paket di menu Langganan.");
+        }
     }
 
     private function findToggleable(string $code): Module

@@ -21,7 +21,7 @@ class WhatsAppManager
 {
     public function for(?Tenant $tenant): array
     {
-        $account = $tenant
+        $account = $tenant?->allows('own_whatsapp')
             ? WhatsappAccount::query()->where('tenant_id', $tenant->id)->where('is_active', true)->first()
             : null;
         $account ??= WhatsappAccount::query()->whereNull('tenant_id')->where('is_active', true)->first();

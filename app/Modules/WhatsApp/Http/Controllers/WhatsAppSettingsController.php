@@ -69,6 +69,10 @@ class WhatsAppSettingsController extends Controller
 
         $account = $this->account();
 
+        if ($data['mode'] === 'own' && ! $this->context->get()->allows('own_whatsapp')) {
+            return back()->with('error', 'Nomor WhatsApp sendiri tersedia di paket Bisnis. Naikkan paket di menu Langganan.');
+        }
+
         if ($data['mode'] === 'central') {
             $account?->update(['is_active' => false]);
 

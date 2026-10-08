@@ -3,9 +3,11 @@
 namespace App\Modules\Staff\Http\Controllers;
 
 use App\Enums\Role;
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Outlet;
 use App\Models\User;
+use App\Modules\Billing\Services\PlanGuard;
 use App\Modules\Staff\Http\Requests\StaffRequest;
 use App\Modules\Staff\Http\Resources\StaffResource;
 use App\Modules\Staff\Services\StaffService;
@@ -37,8 +39,9 @@ class StaffController extends Controller
     }
 
     // store & update: izin sudah dicek di StaffRequest::authorize().
-    public function store(StaffRequest $request): RedirectResponse
+    public function store(StaffRequest $request, PlanGuard $guard, TenantContext $context): RedirectResponse
     {
+        $guard->ensureCanAddStaff($context->get());
         $staff = $this->service->create($request->validated());
 
         return redirect()->route('staff.index')->with('success', "{$staff->name} sudah ditambahkan.");

@@ -4,10 +4,12 @@ namespace App\Modules\WhatsApp\Services;
 
 use App\Core\Support\Phone;
 use App\Core\Tenancy\TenantContext;
+use App\Modules\Billing\Services\PlanGuard;
 use App\Modules\WhatsApp\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsApp\Models\MessageTemplate;
 use App\Modules\WhatsApp\Models\WhatsappMessage;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Kirim pesan WhatsApp lewat antrean (tidak membuat kasir menunggu), dengan template yang bisa
@@ -32,7 +34,7 @@ class WhatsAppService
         'membership_expiring' => 'Paket member hampir habis',
     ];
 
-    public function __construct(private TenantContext $context) {}
+    public function __construct(private TenantContext $context, private PlanGuard $guard) {}
 
     public function template(string $code): string
     {
@@ -61,6 +63,13 @@ class WhatsAppService
     {
         $to = Phone::normalize($phone);
         if (! $to || $body === '') {
+            return null;
+        }
+
+        $tenant = $this->context->get();
+        if ($tenant && $this->guard->whatsappQuotaLeft($tenant) === 0) {
+            Log::info("Kuota WhatsApp usaha {$tenant->id} bulan ini habis, pesan tidak dikirim.");
+
             return null;
         }
 

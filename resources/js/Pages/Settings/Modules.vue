@@ -4,7 +4,7 @@
  * Fitur yang disarankan untuk jenis usaha ini diberi tanda bintang.
  */
 import { ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { CircleCheck, Star } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/ui/AppIcon.vue';
@@ -64,7 +64,15 @@ function toggle(module, enabled) {
                     </p>
                     <p class="text-base text-ink-soft">{{ module.description }}</p>
                 </div>
+                <Link
+                    v-if="module.required_plan"
+                    :href="route('billing.index')"
+                    class="pressable ml-auto rounded-full bg-accent-soft px-3 py-2 text-base font-bold text-accent-ink"
+                >
+                    Paket {{ module.required_plan }}
+                </Link>
                 <ToggleSwitch
+                    v-else
                     class="ml-auto"
                     :model-value="module.enabled"
                     :label="module.name"
