@@ -5,6 +5,7 @@ namespace App\Modules\Operations\Hooks;
 use App\Core\Tenancy\TenantContext;
 use App\Models\User;
 use App\Modules\Operations\Models\Receivable;
+use App\Modules\Operations\Services\KasbonBillService;
 use App\Modules\Pos\Contracts\SaleHook;
 use App\Modules\Pos\Models\Sale;
 
@@ -27,7 +28,7 @@ class ReceivableHook implements SaleHook
             'type' => $this->context->get()->hasModule('kasbon') ? 'kasbon' : 'tempo',
             'amount' => $sale->due_amount,
             'paid_amount' => 0,
-            'due_date' => $sale->due_date,
+            'due_date' => $sale->due_date ?? KasbonBillService::defaultDueDate($sale->customer, $this->context->get()->timezone),
             'status' => 'open',
             'note' => "Nota {$sale->number}",
         ]);

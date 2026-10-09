@@ -8,20 +8,26 @@ use App\Http\Controllers\Controller;
 use App\Modules\Customer\Models\Customer;
 use App\Modules\Operations\Models\Receivable;
 use App\Modules\Operations\Models\ReceivablePayment;
+use App\Modules\Operations\Models\ReceivableProof;
+use App\Modules\Operations\Services\KasbonBillService;
 use App\Modules\Operations\Services\ReceivableService;
 use App\Modules\Pos\Models\PaymentMethod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Kasbon & piutang: siapa saja yang masih berutang, catat utang manual, terima cicilan, kirim pengingat. */
 class ReceivableController extends Controller
 {
-    public function __construct(private ReceivableService $service, private TenantContext $context) {}
+    public function __construct(private ReceivableService $service, private TenantContext $context, private KasbonBillService $bills) {}
 
     public function index(Request $request): Response
     {
+        $canReview = $request->user()->can('view_reports');
+
         $term = trim($request->string('q')->toString());
 
         $rows = Receivable::query()->where('status', 'open')
@@ -51,11 +57,16 @@ class ReceivableController extends Controller
             'total' => (int) $customers->sum('balance'),
             'q' => $term,
             'allCustomers' => Customer::query()->orderBy('name')->limit(500)->get(['id', 'name']),
+            'pendingProofs' => $canReview ? $this->bills->pending()->map(fn (ReceivableProof $p) => $this->proofRow($p)) : [],
+            'billSettings' => KasbonBillService::settings($this->context->get()),
+            'canConfigure' => $request->user()->can('manage_business'),
         ]);
     }
 
-    public function show(Customer $customer): Response
+    public function show(Request $request, Customer $customer): Response
     {
+        $canReview = $request->user()->can('view_reports');
+
         $timezone = $this->context->get()->timezone;
         $format = fn ($d) => $d?->timezone($timezone)->locale('id')->translatedFormat('j M Y');
 
@@ -71,6 +82,15 @@ class ReceivableController extends Controller
             ]),
             'payments' => $payments->map(fn ($p) => ['amount' => $p->amount, 'date' => $format($p->paid_at), 'user' => $p->user?->name, 'method' => $p->method_type]),
             'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+            'billing' => [
+                'day' => $customer->billing_day,
+                'link' => $this->bills->billUrl($customer),
+                'auto' => KasbonBillService::settings($this->context->get())['auto'],
+            ],
+            'proofs' => $canReview
+                ? ReceivableProof::query()->where('customer_id', $customer->id)->with(['reviewer:id,name', 'customer:id,name'])->latest()->limit(20)->get()
+                    ->map(fn (ReceivableProof $p) => $this->proofRow($p))
+                : [],
         ]);
     }
 
@@ -84,7 +104,7 @@ class ReceivableController extends Controller
         ], ['customer_id.required' => 'Pilih pelanggan dulu.', 'amount.required' => 'Isi jumlah utangnya.']);
 
         $customer = Customer::query()->findOrFail($data['customer_id']);
-        $this->service->recordManual($customer, $data['amount'], $data['note'] ?? null, $data['due_date'] ?? null);
+        $this->service->recordManual($customer, $data['amount'], $data['note'] ?? null, $data['due_date'] ?? null, $this->context->get()->timezone);
 
         return redirect()->route('receivables.show', $customer)->with('success', "Utang {$customer->name} sudah dicatat.");
     }
@@ -103,8 +123,96 @@ class ReceivableController extends Controller
 
     public function remind(Customer $customer): RedirectResponse
     {
-        return $this->service->remind($customer)
-            ? back()->with('success', "Pengingat sudah dikirim ke WhatsApp {$customer->name}.")
-            : back()->with('error', 'Pelanggan ini belum punya no HP, atau tidak punya utang.');
+        if ($customer->outstandingBalance() <= 0 || ! $customer->phone) {
+            return back()->with('error', 'Pelanggan ini belum punya no HP, atau tidak punya utang.');
+        }
+
+        return $this->bills->send($customer)
+            ? back()->with('success', "Tagihan sudah dikirim ke WhatsApp {$customer->name}.")
+            : back()->with('error', 'Tagihan belum terkirim. Kuota WhatsApp bulan ini mungkin sudah habis.');
+    }
+
+    public function settings(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'auto' => ['boolean'],
+            'payment_info' => ['nullable', 'string', 'max:500'],
+        ], ['payment_info.max' => 'Info pembayaran maksimal 500 huruf.']);
+
+        $this->bills->saveSettings($this->context->get(), (bool) ($data['auto'] ?? false), $data['payment_info'] ?? null);
+
+        return back()->with('success', 'Pengaturan tagihan disimpan.');
+    }
+
+    public function billingDay(Request $request, Customer $customer): RedirectResponse
+    {
+        $data = $request->validate([
+            'billing_day' => ['nullable', 'integer', 'between:1,28'],
+        ], ['billing_day.between' => 'Pilih tanggal 1 sampai 28.']);
+
+        $this->bills->setBillingDay($customer, $data['billing_day'] ?? null);
+
+        return back()->with('success', isset($data['billing_day'])
+            ? "Tagihan {$customer->name} jatuh tempo tiap tanggal {$data['billing_day']}."
+            : "Tanggal tagih {$customer->name} dihapus.");
+    }
+
+    public function resetLink(Customer $customer): RedirectResponse
+    {
+        $this->bills->resetLink($customer);
+
+        return back()->with('success', 'Link tagihan lama sudah tidak berlaku. Link baru sudah dibuat.');
+    }
+
+    public function proofFile(ReceivableProof $proof): StreamedResponse
+    {
+        abort_unless(Storage::disk(KasbonBillService::DISK)->exists($proof->file_path), 404);
+
+        return Storage::disk(KasbonBillService::DISK)->response($proof->file_path, 'bukti-'.$proof->id.($proof->isPdf() ? '.pdf' : '.jpg'), [
+            'Content-Type' => $proof->file_mime,
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, max-age=600',
+        ]);
+    }
+
+    public function approveProof(Request $request, ReceivableProof $proof): RedirectResponse
+    {
+        $data = $request->validate([
+            'amount' => ['required', 'integer', 'min:1'],
+            'payment_method_id' => ['nullable', 'integer'],
+        ], ['amount.required' => 'Isi jumlah yang diterima.']);
+
+        $remaining = $this->bills->approve($proof, $request->user(), $data['amount'], $data['payment_method_id'] ?? null);
+
+        return back()->with('success', $remaining > 0 ? 'Pembayaran diterima. Sisa utang '.\App\Core\Support\Rupiah::format($remaining).'.' : 'Pembayaran diterima. Utang sudah lunas!');
+    }
+
+    public function rejectProof(Request $request, ReceivableProof $proof): RedirectResponse
+    {
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:200'],
+        ], ['reason.required' => 'Tulis alasannya supaya pelanggan tahu harus apa.']);
+
+        $this->bills->reject($proof, $request->user(), trim($data['reason']));
+
+        return back()->with('success', 'Bukti ditolak dan pelanggan sudah diberi tahu.');
+    }
+
+    private function proofRow(ReceivableProof $proof): array
+    {
+        return [
+            'id' => $proof->id,
+            'customer_id' => $proof->customer_id,
+            'customer' => $proof->customer?->name,
+            'amount' => $proof->amount,
+            'approved_amount' => $proof->approved_amount,
+            'note' => $proof->note,
+            'status' => $proof->status,
+            'reject_reason' => $proof->reject_reason,
+            'is_pdf' => $proof->isPdf(),
+            'file_url' => route('receivables.proofs.file', $proof),
+            'date' => $proof->created_at->timezone($this->context->get()->timezone)->locale('id')->translatedFormat('j M Y, H:i'),
+            'reviewer' => $proof->relationLoaded('reviewer') ? $proof->reviewer?->name : null,
+        ];
     }
 }

@@ -9,27 +9,24 @@ use App\Modules\Operations\Models\Receivable;
 use App\Modules\Operations\Models\ReceivablePayment;
 use App\Modules\Pos\Models\PaymentMethod;
 use App\Modules\Pos\Models\Sale;
-use App\Modules\WhatsApp\Services\WhatsAppService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Kasbon & piutang: catat utang manual, terima cicilan/pelunasan, dan kirim pengingat WhatsApp.
+ * Kasbon & piutang: catat utang manual dan terima cicilan/pelunasan.
  */
 class ReceivableService
 {
-    public function __construct(private WhatsAppService $whatsapp) {}
-
     /** Catat utang tanpa transaksi (mis. "pinjam uang" atau saldo utang lama dari buku). */
-    public function recordManual(Customer $customer, int $amount, ?string $note, ?string $dueDate = null): Receivable
+    public function recordManual(Customer $customer, int $amount, ?string $note, ?string $dueDate = null, ?string $timezone = null): Receivable
     {
         return Receivable::create([
             'customer_id' => $customer->id,
             'type' => 'kasbon',
             'amount' => $amount,
             'paid_amount' => 0,
-            'due_date' => $dueDate,
+            'due_date' => $dueDate ?: KasbonBillService::defaultDueDate($customer, $timezone ?? config('app.timezone')),
             'status' => 'open',
             'note' => $note,
         ]);
@@ -92,23 +89,6 @@ class ReceivableService
 
             return $balance - $amount;
         });
-    }
-
-    public function remind(Customer $customer): bool
-    {
-        $balance = $customer->outstandingBalance();
-        if ($balance <= 0 || ! $customer->phone) {
-            return false;
-        }
-
-        $this->whatsapp->sendTemplate('kasbon_reminder', $customer->phone, [
-            'nama' => $customer->name,
-            'sisa' => Rupiah::format($balance),
-        ], $customer);
-
-        Receivable::query()->where('customer_id', $customer->id)->where('status', 'open')->update(['last_reminded_at' => now()]);
-
-        return true;
     }
 
     /** Nota yang utangnya lunas ikut berubah status pembayarannya. */

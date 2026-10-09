@@ -8,6 +8,7 @@ use App\Modules\Operations\Http\Controllers\KitchenController;
 use App\Modules\Operations\Http\Controllers\MembershipController;
 use App\Modules\Operations\Http\Controllers\OnlineStoreController;
 use App\Modules\Operations\Http\Controllers\OrderBoardController;
+use App\Modules\Operations\Http\Controllers\PublicBillController;
 use App\Modules\Operations\Http\Controllers\PublicOrderController;
 use App\Modules\Operations\Http\Controllers\QueueController;
 use App\Modules\Operations\Http\Controllers\ReceivableController;
@@ -76,6 +77,15 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         Route::get('kasbon/{customer}', [ReceivableController::class, 'show'])->name('receivables.show');
         Route::post('kasbon/{customer}/bayar', [ReceivableController::class, 'pay'])->name('receivables.pay');
         Route::post('kasbon/{customer}/ingatkan', [ReceivableController::class, 'remind'])->middleware('throttle:10,1')->name('receivables.remind');
+        Route::put('kasbon/{customer}/jadwal', [ReceivableController::class, 'billingDay'])->name('receivables.billing-day');
+        Route::post('kasbon/{customer}/ganti-link', [ReceivableController::class, 'resetLink'])->name('receivables.reset-link');
+        Route::put('kasbon-pengaturan', [ReceivableController::class, 'settings'])->middleware('can:manage_business')->name('receivables.settings');
+
+        Route::middleware('can:view_reports')->group(function () {
+            Route::get('kasbon-bukti/{proof}/file', [ReceivableController::class, 'proofFile'])->name('receivables.proofs.file');
+            Route::post('kasbon-bukti/{proof}/terima', [ReceivableController::class, 'approveProof'])->name('receivables.proofs.approve');
+            Route::post('kasbon-bukti/{proof}/tolak', [ReceivableController::class, 'rejectProof'])->name('receivables.proofs.reject');
+        });
     });
 
     Route::middleware(['can:manage_business', 'module:membership'])->group(function () {
@@ -119,3 +129,6 @@ Route::post('m/{token}', [PublicOrderController::class, 'store'])->where('token'
 Route::get('pesanan-saya/{uuid}', [PublicOrderController::class, 'status'])->whereUuid('uuid')->middleware('throttle:60,1')->name('self-order.status');
 Route::get('pesanan-saya/{uuid}/cek', [PublicOrderController::class, 'poll'])->whereUuid('uuid')->middleware('throttle:60,1')->name('self-order.poll');
 Route::post('webhook/midtrans/pesanan/{tenantUuid}', [PublicOrderController::class, 'webhook'])->whereUuid('tenantUuid')->middleware('throttle:120,1')->name('self-order.webhook');
+
+Route::get('tagihan/{token}', [PublicBillController::class, 'show'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('kasbon.bill');
+Route::post('tagihan/{token}', [PublicBillController::class, 'store'])->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:6,1')->name('kasbon.bill.proof');

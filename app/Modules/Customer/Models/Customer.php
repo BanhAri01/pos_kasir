@@ -17,11 +17,13 @@ class Customer extends Model
 {
     use BelongsToTenant, SoftDeletes;
 
-    protected $fillable = ['uuid', 'name', 'phone', 'address', 'notes', 'member_code', 'price_level_id', 'credit_limit'];
+    protected $fillable = ['uuid', 'name', 'phone', 'address', 'notes', 'member_code', 'price_level_id', 'credit_limit', 'billing_day'];
+
+    protected $hidden = ['bill_token'];
 
     protected function casts(): array
     {
-        return ['credit_limit' => 'integer'];
+        return ['credit_limit' => 'integer', 'billing_day' => 'integer'];
     }
 
     public function priceLevel(): BelongsTo

@@ -1,8 +1,7 @@
 <script setup>
-/** Buku kasbon: siapa saja yang masih berutang, urut dari yang terbesar. */
 import { ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { AlertTriangle, ChevronRight, NotebookPen, Plus, Search } from 'lucide-vue-next';
+import { AlertTriangle, ChevronRight, Inbox, NotebookPen, Plus, Search, Settings2 } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BigButton from '@/Components/ui/BigButton.vue';
 import BigInput from '@/Components/ui/BigInput.vue';
@@ -11,6 +10,7 @@ import EmptyState from '@/Components/ui/EmptyState.vue';
 import MoneyDisplay from '@/Components/ui/MoneyDisplay.vue';
 import MoneyInput from '@/Components/ui/MoneyInput.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
+import ToggleSwitch from '@/Components/ui/ToggleSwitch.vue';
 import { formatRupiah } from '@/composables/useRupiah';
 
 defineOptions({ layout: AppLayout });
@@ -20,7 +20,17 @@ const props = defineProps({
     total: { type: Number, required: true },
     q: { type: String, default: '' },
     allCustomers: { type: Array, required: true },
+    pendingProofs: { type: Array, required: true },
+    billSettings: { type: Object, required: true },
+    canConfigure: { type: Boolean, default: false },
 });
+
+const settingsOpen = ref(false);
+const settingsForm = useForm({ auto: props.billSettings.auto, payment_info: props.billSettings.payment_info });
+
+function saveSettings() {
+    settingsForm.put(route('receivables.settings'), { preserveScroll: true, onSuccess: () => (settingsOpen.value = false) });
+}
 
 const search = ref(props.q);
 const adding = ref(false);
@@ -41,9 +51,32 @@ function save() {
     <Head title="Kasbon" />
     <PageHeader title="Kasbon / Utang Pelanggan" help="kasbon">
         <template #action>
-            <BigButton variant="soft" @click="adding = true"><Plus :size="22" aria-hidden="true" /> Catat Utang</BigButton>
+            <div class="flex flex-wrap gap-2">
+                <BigButton v-if="canConfigure" variant="secondary" @click="settingsOpen = true"><Settings2 :size="22" aria-hidden="true" /> Pengaturan Tagihan</BigButton>
+                <BigButton variant="soft" @click="adding = true"><Plus :size="22" aria-hidden="true" /> Catat Utang</BigButton>
+            </div>
         </template>
     </PageHeader>
+
+    <section v-if="pendingProofs.length" class="card mb-5 p-5 ring-2 ring-info-ink/30">
+        <h2 class="mb-3 flex items-center gap-2 text-xl font-extrabold text-ink"><Inbox :size="24" aria-hidden="true" /> Bukti bayar menunggu dicek ({{ pendingProofs.length }})</h2>
+        <ul class="divide-y divide-line">
+            <li v-for="p in pendingProofs" :key="p.id">
+                <Link :href="route('receivables.show', p.customer_id)" class="flex min-h-touch items-center gap-3 py-3">
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate text-lg font-bold text-ink">{{ p.customer }}</span>
+                        <span class="block text-base text-ink-soft">{{ p.date }}</span>
+                    </span>
+                    <span class="font-display text-lg font-extrabold text-ink tabular-nums">{{ formatRupiah(p.amount) }}</span>
+                    <ChevronRight :size="24" class="shrink-0 text-ink-soft" aria-hidden="true" />
+                </Link>
+            </li>
+        </ul>
+    </section>
+
+    <button v-if="canConfigure && !billSettings.auto" type="button" class="pressable mb-5 w-full rounded-2xl bg-info-soft p-4 text-left text-lg text-info-ink" @click="settingsOpen = true">
+        Tagih otomatis belum aktif. Ketuk untuk menyalakan supaya tagihan terkirim sendiri ke WhatsApp pelanggan saat jatuh tempo.
+    </button>
 
     <div class="card mb-5 p-5">
         <MoneyDisplay :amount="total" size="lg" tone="negative" label="Total utang pelanggan" />
@@ -76,6 +109,25 @@ function save() {
             </Link>
         </li>
     </ul>
+
+    <BottomSheet v-model:open="settingsOpen" title="Pengaturan Tagihan">
+        <form class="flex flex-col gap-5" @submit.prevent="saveSettings">
+            <div class="flex items-center justify-between gap-4">
+                <span>
+                    <span class="block text-lg font-bold text-ink">Tagih otomatis saat jatuh tempo</span>
+                    <span class="block text-base text-ink-soft">Dikirim ke WhatsApp pelanggan jam 08.00–18.00, lalu diulang tiap 7 hari selama belum lunas.</span>
+                </span>
+                <ToggleSwitch v-model="settingsForm.auto" label="Tagih otomatis" />
+            </div>
+            <label class="block">
+                <span class="mb-2 block text-lg font-bold text-ink">Cara pembayaran <span class="font-semibold text-ink-soft">(tampil di halaman tagihan)</span></span>
+                <textarea v-model="settingsForm.payment_info" rows="4" maxlength="500" placeholder="Contoh: Transfer BCA 1234567890 a.n. Gudang Sinar Abadi" class="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3 text-lg text-ink focus:border-focus focus:outline-none"></textarea>
+                <span v-if="settingsForm.errors.payment_info" class="mt-2 block text-base font-bold text-danger-ink">{{ settingsForm.errors.payment_info }}</span>
+            </label>
+            <p class="text-base text-ink-soft">Atur tanggal jatuh tempo bulanan per pelanggan di halaman kasbon pelanggan tersebut.</p>
+            <BigButton type="submit" block size="large" :loading="settingsForm.processing">Simpan</BigButton>
+        </form>
+    </BottomSheet>
 
     <BottomSheet v-model:open="adding" title="Catat Utang Manual">
         <form class="flex flex-col gap-4" @submit.prevent="save">

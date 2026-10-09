@@ -20,7 +20,10 @@ class WhatsAppService
     /** Template bawaan (bahasa sehari-hari, sopan). */
     public const DEFAULT_TEMPLATES = [
         'receipt' => "Halo {nama}, terima kasih sudah berbelanja di *{usaha}* 🙏\n\nNo. Nota: {nota}\nTotal: *{total}*\n\nLihat struk: {link}",
-        'kasbon_reminder' => "Halo {nama}, ini pengingat dari *{usaha}*.\n\nCatatan utang Anda saat ini: *{sisa}*.\nMohon dilunasi bila sudah ada rezeki. Terima kasih 🙏",
+        'kasbon_reminder' => "Yth. Bapak/Ibu {nama},\n\nBersama pesan ini kami sampaikan tagihan dari *{usaha}* per {tanggal}.\n\nTagihan jatuh tempo: *{tagihan}*\nJatuh tempo: {jatuh_tempo}\nTotal sisa tagihan: *{sisa}* ({jumlah_nota} nota)\n\nRincian nota dapat dilihat, dan bukti pembayaran dapat diunggah, melalui tautan berikut:\n{link}\n\nMohon abaikan pesan ini apabila pembayaran sudah dilakukan. Terima kasih atas kerja samanya 🙏",
+        'kasbon_proof' => "*Bukti bayar kasbon masuk*\n\n{nama} mengirim bukti pembayaran *{jumlah}*.\nSisa tagihan sebelum dicek: {sisa}\n\nCek lalu terima atau tolak di sini:\n{link}",
+        'kasbon_paid' => "Yth. Bapak/Ibu {nama},\n\nPembayaran sebesar *{jumlah}* sudah kami terima. Terima kasih 🙏\nSisa tagihan: *{sisa}*\n\nHormat kami,\n*{usaha}*",
+        'kasbon_rejected' => "Yth. Bapak/Ibu {nama},\n\nMohon maaf, bukti pembayaran sebesar *{jumlah}* belum dapat kami terima.\nAlasan: {alasan}\n\nSilakan kirim ulang bukti pembayaran melalui tautan berikut:\n{link}\n\nHormat kami,\n*{usaha}*",
         'order_ready' => "Halo {nama}, pesanan Anda di *{usaha}* (nota {nota}) sudah *{status}* ✅\n\n{sisa}\n\nTerima kasih!",
         'booking_reminder' => "Halo {nama}, mengingatkan janji Anda di *{usaha}* hari ini jam *{jam}* untuk {layanan}.\n\nSampai jumpa! 🙏",
         'membership_expiring' => "Halo {nama}, paket member Anda di *{usaha}* akan habis pada *{tanggal}*.\n\nYuk perpanjang supaya tetap bisa latihan 💪",
@@ -30,7 +33,10 @@ class WhatsAppService
 
     public const LABELS = [
         'receipt' => 'Struk belanja',
-        'kasbon_reminder' => 'Pengingat utang / kasbon',
+        'kasbon_reminder' => 'Tagihan kasbon ke pelanggan',
+        'kasbon_proof' => 'Bukti bayar kasbon masuk (ke pemilik)',
+        'kasbon_paid' => 'Pembayaran kasbon diterima',
+        'kasbon_rejected' => 'Bukti bayar kasbon ditolak',
         'order_ready' => 'Pesanan siap diambil',
         'booking_reminder' => 'Pengingat janji temu',
         'membership_expiring' => 'Paket member hampir habis',
