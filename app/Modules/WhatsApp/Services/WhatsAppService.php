@@ -4,6 +4,7 @@ namespace App\Modules\WhatsApp\Services;
 
 use App\Core\Support\Phone;
 use App\Core\Tenancy\TenantContext;
+use App\Models\Tenant;
 use App\Modules\Billing\Services\PlanGuard;
 use App\Modules\WhatsApp\Jobs\SendWhatsAppMessage;
 use App\Modules\WhatsApp\Models\MessageTemplate;
@@ -44,11 +45,42 @@ class WhatsAppService
         'daily_report' => 'Laporan harian ke pemilik',
     ];
 
+    public const REQUIRES = [
+        'receipt' => ['whatsapp_notification'],
+        'kasbon_reminder' => ['kasbon'],
+        'kasbon_proof' => ['kasbon'],
+        'kasbon_paid' => ['kasbon'],
+        'kasbon_rejected' => ['kasbon'],
+        'order_ready' => ['whatsapp_notification', 'order_status'],
+        'booking_reminder' => ['whatsapp_notification', 'booking'],
+        'membership_expiring' => ['whatsapp_notification', 'membership'],
+        'loyalty_points' => ['whatsapp_notification', 'loyalty'],
+        'daily_report' => [],
+    ];
+
     public function __construct(private TenantContext $context, private PlanGuard $guard) {}
+
+    public static function isEnabled(?Tenant $tenant, string $code): bool
+    {
+        return ! in_array($code, $tenant?->settings['wa_off'] ?? [], true);
+    }
+
+    public static function setEnabled(Tenant $tenant, string $code, bool $enabled): void
+    {
+        $settings = $tenant->settings ?? [];
+        $off = array_values(array_diff($settings['wa_off'] ?? [], [$code]));
+        $settings['wa_off'] = $enabled ? $off : [...$off, $code];
+        $tenant->forceFill(['settings' => $settings])->save();
+    }
+
+    public static function availableFor(Tenant $tenant): array
+    {
+        return array_keys(array_filter(self::REQUIRES, fn (array $modules) => collect($modules)->every(fn ($m) => $tenant->hasModule($m))));
+    }
 
     public function template(string $code): string
     {
-        return MessageTemplate::query()->where('code', $code)->where('is_active', true)->value('body')
+        return MessageTemplate::query()->where('code', $code)->value('body')
             ?? self::DEFAULT_TEMPLATES[$code]
             ?? '';
     }
@@ -62,6 +94,10 @@ class WhatsAppService
 
     public function sendTemplate(string $code, string $phone, array $vars, ?Model $related = null): ?WhatsappMessage
     {
+        if (! self::isEnabled($this->context->get(), $code)) {
+            return null;
+        }
+
         return $this->send($phone, $this->render($this->template($code), $vars), $code, $related);
     }
 

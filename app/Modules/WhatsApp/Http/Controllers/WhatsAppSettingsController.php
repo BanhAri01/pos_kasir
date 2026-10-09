@@ -28,7 +28,9 @@ class WhatsAppSettingsController extends Controller
     {
         $account = $this->account();
         $custom = MessageTemplate::query()->get()->keyBy('code');
-        $timezone = $this->context->get()->timezone;
+        $tenant = $this->context->get();
+        $timezone = $tenant->timezone;
+        $available = WhatsAppService::availableFor($tenant);
 
         return Inertia::render('Settings/WhatsApp', [
             'account' => $account ? [
@@ -39,13 +41,13 @@ class WhatsAppSettingsController extends Controller
                 'domain' => $account->credentials['domain'] ?? null,
                 'phone_number_id' => $account->credentials['phone_number_id'] ?? null,
             ] : null,
-            'templates' => collect(WhatsAppService::DEFAULT_TEMPLATES)->map(fn ($body, $code) => [
+            'templates' => collect(WhatsAppService::DEFAULT_TEMPLATES)->only($available)->map(fn ($body, $code) => [
                 'code' => $code,
                 'label' => WhatsAppService::LABELS[$code] ?? $code,
                 'body' => $custom[$code]->body ?? $body,
                 'default' => $body,
                 'is_custom' => isset($custom[$code]),
-                'is_active' => $custom[$code]->is_active ?? true,
+                'is_active' => WhatsAppService::isEnabled($tenant, $code),
             ])->values(),
             'messages' => WhatsappMessage::query()->latest('id')->limit(30)->get()->map(fn ($m) => [
                 'id' => $m->id, 'to' => Phone::display($m->to_phone), 'template' => WhatsAppService::LABELS[$m->template_code] ?? 'Pesan',
@@ -106,7 +108,6 @@ class WhatsAppSettingsController extends Controller
         abort_unless(array_key_exists($code, WhatsAppService::DEFAULT_TEMPLATES), 404);
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:1000'],
-            'is_active' => ['boolean'],
             'reset' => ['boolean'],
         ]);
 
@@ -118,10 +119,21 @@ class WhatsAppSettingsController extends Controller
 
         MessageTemplate::updateOrCreate(['code' => $code], [
             'body' => $data['body'] ?: WhatsAppService::DEFAULT_TEMPLATES[$code],
-            'is_active' => $data['is_active'] ?? true,
+            'is_active' => true,
         ]);
 
         return back()->with('success', 'Isi pesan sudah disimpan.');
+    }
+
+    public function toggle(Request $request, string $code): RedirectResponse
+    {
+        abort_unless(array_key_exists($code, WhatsAppService::DEFAULT_TEMPLATES), 404);
+        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+
+        WhatsAppService::setEnabled($this->context->get(), $code, (bool) $data['enabled']);
+        $label = WhatsAppService::LABELS[$code] ?? 'Pesan';
+
+        return back()->with('success', $data['enabled'] ? "\"{$label}\" dinyalakan." : "\"{$label}\" dimatikan, pesan ini tidak akan dikirim.");
     }
 
     public function test(Request $request, WhatsAppService $whatsapp): RedirectResponse

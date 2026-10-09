@@ -38,7 +38,7 @@ const accountForm = useForm({
 });
 const testForm = useForm({ phone: '' });
 const editing = ref(null);
-const templateForm = useForm({ body: '', is_active: true });
+const templateForm = useForm({ body: '' });
 
 function saveAccount() {
     accountForm.put(route('settings.whatsapp.account'), { preserveScroll: true, onSuccess: () => accountForm.reset('token') });
@@ -51,7 +51,6 @@ function sendTest() {
 function editTemplate(t) {
     editing.value = t;
     templateForm.body = t.body;
-    templateForm.is_active = t.is_active;
     templateForm.clearErrors();
 }
 
@@ -62,7 +61,7 @@ function saveTemplate(reset = false) {
 }
 
 function toggleTemplate(t, value) {
-    router.put(route('settings.whatsapp.template', t.code), { body: t.body, is_active: value }, { preserveScroll: true });
+    router.put(route('settings.whatsapp.toggle', t.code), { enabled: value }, { preserveScroll: true });
 }
 
 const STATUS = { sent: [CheckCircle2, 'text-primary-ink', 'Terkirim'], failed: [XCircle, 'text-danger-ink', 'Gagal'], queued: [Clock, 'text-ink-soft', 'Menunggu'] };
@@ -110,12 +109,12 @@ const STATUS = { sent: [CheckCircle2, 'text-primary-ink', 'Terkirim'], failed: [
         </section>
 
         <section class="mb-6">
-            <h2 class="mb-1 text-xl font-extrabold text-ink">Isi pesan</h2>
-            <p class="mb-3 text-base text-ink-soft">Ketuk untuk mengubah. Kata dalam kurung kurawal seperti {nama} diganti otomatis.</p>
+            <h2 class="mb-1 text-xl font-extrabold text-ink">Pilih notifikasi &amp; isi pesan</h2>
+            <p class="mb-3 text-base text-ink-soft">Matikan tombol di kanan untuk berhenti mengirim pesan itu (hemat kuota). Ketuk isi pesan untuk mengubah. Kata dalam kurung kurawal seperti {nama} diganti otomatis.</p>
             <ul class="flex flex-col gap-3">
-                <li v-for="t in templates" :key="t.code" class="card flex flex-col gap-2 p-4">
+                <li v-for="t in templates" :key="t.code" class="card flex flex-col gap-2 p-4" :class="t.is_active ? '' : 'opacity-70'">
                     <div class="flex items-center justify-between gap-3">
-                        <p class="text-lg font-extrabold text-ink">{{ t.label }}</p>
+                        <p class="text-lg font-extrabold text-ink">{{ t.label }} <span v-if="!t.is_active" class="text-base font-bold text-danger-ink">· mati</span></p>
                         <ToggleSwitch :model-value="t.is_active" :label="`Kirim ${t.label}`" @update:model-value="(v) => toggleTemplate(t, v)" />
                     </div>
                     <button type="button" class="pressable rounded-2xl bg-surface-2 p-3 text-left text-base whitespace-pre-line text-ink" @click="editTemplate(t)">{{ t.body }}</button>

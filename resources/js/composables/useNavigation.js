@@ -94,7 +94,7 @@ export function useNavigation() {
             { key: 'report-variants', label: 'Laporan Varian', description: 'Ukuran & warna terlaris dan menumpuk', href: route('reports.variants'), icon: Grid3x3, match: ['reports.variants'], show: hasModule('variant_matrix') && can('view_reports') },
             { key: 'report-consignment', label: 'Barang Titipan', description: 'Bagi hasil barang titipan', href: route('reports.consignment'), icon: Handshake, match: ['reports.consignment'], show: hasModule('consignment') && can('view_reports') },
             { key: 'price-levels', label: 'Tipe Harga', description: 'Harga grosir / harga khusus', href: route('price-levels.index'), icon: Tags, match: ['price-levels.*'], show: hasModule('price_levels') && can('manage_products') },
-            { key: 'whatsapp', label: 'WhatsApp', description: 'Nomor pengirim & isi pesan', href: route('settings.whatsapp'), icon: MessageCircle, match: ['settings.whatsapp*'], show: hasModule('whatsapp_notification') && can('manage_business') },
+            { key: 'whatsapp', label: 'WhatsApp', description: 'Pilih notifikasi, nomor pengirim & isi pesan', href: route('settings.whatsapp'), icon: MessageCircle, match: ['settings.whatsapp*'], show: can('manage_business') },
         ].filter((item) => item.show),
     );
 

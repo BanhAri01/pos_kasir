@@ -126,6 +126,9 @@ class ReceivableController extends Controller
         if ($customer->outstandingBalance() <= 0 || ! $customer->phone) {
             return back()->with('error', 'Pelanggan ini belum punya no HP, atau tidak punya utang.');
         }
+        if (! \App\Modules\WhatsApp\Services\WhatsAppService::isEnabled($this->context->get(), 'kasbon_reminder')) {
+            return back()->with('error', 'Pesan "Tagihan kasbon" sedang dimatikan. Nyalakan di Pengaturan > WhatsApp.');
+        }
 
         return $this->bills->send($customer)
             ? back()->with('success', "Tagihan sudah dikirim ke WhatsApp {$customer->name}.")
