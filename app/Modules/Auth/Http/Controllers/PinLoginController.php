@@ -4,8 +4,12 @@ namespace App\Modules\Auth\Http\Controllers;
 
 use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Core\Tenancy\TenantContext;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Auth\Services\DeviceService;
+use App\Modules\Report\Services\OwnerReportService;
+use App\Modules\WhatsApp\Services\WhatsAppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -69,6 +73,13 @@ class PinLoginController extends Controller
         }
 
         $key = 'pin:'.$device->id.'|'.$request->integer('user_id');
+        $dailyKey = User::pinDailyKey($request->integer('user_id'));
+
+        if (RateLimiter::tooManyAttempts($dailyKey, config('hermes.pin_daily_attempts'))) {
+            throw ValidationException::withMessages([
+                'pin' => 'PIN akun ini dikunci karena terlalu sering salah. Minta pemilik usaha mengganti PIN Anda di menu Karyawan.',
+            ]);
+        }
 
         if (RateLimiter::tooManyAttempts($key, config('hermes.max_login_attempts'))) {
             $seconds = RateLimiter::availableIn($key);
@@ -87,12 +98,17 @@ class PinLoginController extends Controller
         if (! $user || ! $user->checkPin((string) $request->input('pin'))) {
             RateLimiter::hit($key, config('hermes.login_lockout_seconds'));
 
+            if ($user && RateLimiter::hit($dailyKey, 86400) === (int) config('hermes.pin_daily_attempts')) {
+                $this->warnOwner($user);
+            }
+
             throw ValidationException::withMessages([
                 'pin' => 'PIN salah. Coba lagi, atau tanyakan PIN ke pemilik usaha.',
             ]);
         }
 
         RateLimiter::clear($key);
+        RateLimiter::clear($dailyKey);
 
         Auth::login($user);
         $request->session()->regenerate();
@@ -105,5 +121,20 @@ class PinLoginController extends Controller
         }
 
         return redirect()->route('dashboard')->with('success', "Halo, {$user->name}! Selamat bekerja.");
+    }
+
+    private function warnOwner(User $user): void
+    {
+        $tenant = Tenant::query()->find($user->tenant_id);
+        if (! $tenant) {
+            return;
+        }
+
+        app(TenantContext::class)->runAs($tenant, function (Tenant $tenant) use ($user) {
+            $to = app(OwnerReportService::class)->recipient($tenant);
+            if ($to) {
+                app(WhatsAppService::class)->send($to, "*Peringatan keamanan {$tenant->name}*\n\nPIN akun *{$user->name}* salah ".config('hermes.pin_daily_attempts')." kali hari ini, jadi akun itu dikunci 24 jam.\n\nKalau itu bukan karyawan Anda yang lupa PIN, ganti PIN-nya di menu Karyawan. Mengganti PIN juga membuka kuncinya.");
+            }
+        });
     }
 }

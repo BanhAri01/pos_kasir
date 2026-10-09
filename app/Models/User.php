@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -111,6 +112,15 @@ class User extends Authenticatable
     public function setPin(?string $pin): void
     {
         $this->pin_hash = $pin ? Hash::make($pin) : null;
+
+        if ($this->id) {
+            RateLimiter::clear(self::pinDailyKey($this->id));
+        }
+    }
+
+    public static function pinDailyKey(int $userId): string
+    {
+        return 'pin-day:'.$userId;
     }
 
     public function hasPin(): bool

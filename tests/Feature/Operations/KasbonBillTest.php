@@ -196,7 +196,12 @@ describe('halaman tagihan & bukti bayar', function () {
 
         $this->post(route('kasbon.bill.proof', $this->token), ['amount' => 10000, 'file' => $pdf])->assertSessionHasNoErrors();
 
-        expect(asTenant($this->owner->tenant, fn () => ReceivableProof::query()->first()->file_mime))->toBe('application/pdf');
+        $proof = asTenant($this->owner->tenant, fn () => ReceivableProof::query()->first());
+        expect($proof->file_mime)->toBe('application/pdf');
+
+        $response = $this->actingAs($this->owner)->get(route('receivables.proofs.file', $proof))->assertOk();
+        expect($response->headers->get('Content-Disposition'))->toStartWith('attachment')
+            ->and($response->headers->get('Content-Security-Policy'))->toContain('sandbox');
     });
 
     it('link lama mati setelah diganti', function () {

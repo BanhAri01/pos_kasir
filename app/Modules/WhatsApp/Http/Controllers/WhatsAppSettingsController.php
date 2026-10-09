@@ -5,6 +5,7 @@ namespace App\Modules\WhatsApp\Http\Controllers;
 use App\Core\Support\Phone;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
+use App\Modules\WhatsApp\Drivers\WablasDriver;
 use App\Modules\WhatsApp\Models\MessageTemplate;
 use App\Modules\WhatsApp\Models\WhatsappAccount;
 use App\Modules\WhatsApp\Models\WhatsappMessage;
@@ -68,6 +69,10 @@ class WhatsAppSettingsController extends Controller
             'domain' => ['nullable', 'url', 'max:100'],
             'phone_number_id' => ['nullable', 'string', 'max:50'],
         ], ['provider.required_if' => 'Pilih penyedia WhatsApp.']);
+
+        if ($data['mode'] === 'own' && ($data['provider'] ?? null) === 'wablas' && filled($data['domain'] ?? null) && ! WablasDriver::isAllowedDomain($data['domain'])) {
+            return back()->withErrors(['domain' => 'Domain Wablas harus alamat resmi berawalan https, contoh: https://solo.wablas.com']);
+        }
 
         $account = $this->account();
 

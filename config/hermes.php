@@ -24,6 +24,7 @@ return [
     // Batas salah PIN / kata sandi sebelum harus menunggu.
     'max_login_attempts' => 5,
     'login_lockout_seconds' => 60,
+    'pin_daily_attempts' => 20,
     'grace_days' => (int) env('HERMES_GRACE_DAYS', 3),
 
     'default_plan' => 'bisnis',

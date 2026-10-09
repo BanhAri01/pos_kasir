@@ -174,8 +174,9 @@ class ReceivableController extends Controller
         return Storage::disk(KasbonBillService::DISK)->response($proof->file_path, 'bukti-'.$proof->id.($proof->isPdf() ? '.pdf' : '.jpg'), [
             'Content-Type' => $proof->file_mime,
             'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => 'sandbox; default-src \'none\'; img-src \'self\'',
             'Cache-Control' => 'private, max-age=600',
-        ]);
+        ], $proof->isPdf() ? 'attachment' : 'inline');
     }
 
     public function approveProof(Request $request, ReceivableProof $proof): RedirectResponse

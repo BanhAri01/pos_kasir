@@ -48,3 +48,8 @@
         Header set Cache-Control "no-cache"
     </FilesMatch>
 </IfModule>
+
+# Arsip, dump database, dan file cadangan tidak boleh diunduh dari web.
+<FilesMatch "\.(zip|tar|gz|tgz|rar|7z|sql|bak|old|log)$">
+    Require all denied
+</FilesMatch>
