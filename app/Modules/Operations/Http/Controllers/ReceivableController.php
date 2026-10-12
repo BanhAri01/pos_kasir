@@ -76,6 +76,9 @@ class ReceivableController extends Controller
         return Inertia::render('Operations/ReceivableShow', [
             'customer' => ['id' => $customer->id, 'name' => $customer->name, 'phone' => Phone::display($customer->phone), 'has_phone' => (bool) $customer->phone, 'credit_limit' => $customer->credit_limit],
             'balance' => $customer->outstandingBalance(),
+            'deposit_balance' => (int) ($customer->deposit_balance ?? 0),
+            'net_balance' => $customer->netOutstandingBalance(),
+            'wa_billing_url' => $this->bills->waBillingUrl($customer),
             'receivables' => $receivables->map(fn ($r) => [
                 'id' => $r->id, 'type' => $r->type, 'amount' => $r->amount, 'paid_amount' => $r->paid_amount, 'status' => $r->status,
                 'note' => $r->note, 'sale_uuid' => $r->sale?->uuid, 'date' => $format($r->created_at), 'due_date' => $r->due_date?->locale('id')->translatedFormat('j M Y'),

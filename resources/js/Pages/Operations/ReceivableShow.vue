@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { BellRing, CalendarClock, Check, Copy, ExternalLink, FileText, Link2, Wallet, X } from 'lucide-vue-next';
+import { BellRing, CalendarClock, Check, Copy, ExternalLink, FileText, HandCoins, Link2, MessageCircle, Wallet, X } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import BigButton from '@/Components/ui/BigButton.vue';
 import BottomSheet from '@/Components/ui/BottomSheet.vue';
@@ -16,6 +16,9 @@ defineOptions({ layout: AppLayout });
 const props = defineProps({
     customer: { type: Object, required: true },
     balance: { type: Number, required: true },
+    deposit_balance: { type: Number, default: 0 },
+    net_balance: { type: Number, default: 0 },
+    wa_billing_url: { type: String, default: null },
     receivables: { type: Array, required: true },
     payments: { type: Array, required: true },
     paymentMethods: { type: Array, required: true },
@@ -100,11 +103,40 @@ const TYPE = { kasbon: 'Kasbon', tempo: 'Jual tempo' };
         <PageHeader :title="customer.name" :subtitle="customer.phone || 'Tanpa no HP'" :back-href="route('receivables.index')" />
 
         <div class="card mb-4 flex flex-col gap-4 p-5">
-            <MoneyDisplay :amount="balance" size="xl" :tone="balance > 0 ? 'negative' : 'positive'" label="Sisa utang" />
+            <MoneyDisplay :amount="balance" size="xl" :tone="balance > 0 ? 'negative' : 'positive'" label="Sisa utang nota" />
+
+            <div v-if="deposit_balance > 0" class="rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 p-4">
+                <div class="flex items-center justify-between text-base">
+                    <span class="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400">
+                        <HandCoins :size="18" aria-hidden="true" />
+                        Saldo Titip Uang (Deposit)
+                    </span>
+                    <span class="font-extrabold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                        {{ formatRupiah(deposit_balance) }}
+                    </span>
+                </div>
+                <div class="mt-2 flex items-center justify-between border-t border-emerald-500/20 pt-2 text-base">
+                    <span class="font-bold text-ink">Sisa Kewajiban Bersih</span>
+                    <span class="font-display text-2xl font-black text-ink tabular-nums">
+                        {{ formatRupiah(net_balance) }}
+                    </span>
+                </div>
+            </div>
+
             <p v-if="customer.credit_limit" class="text-base text-ink-soft">Batas kasbon: {{ formatRupiah(customer.credit_limit) }}</p>
             <div class="grid gap-3 sm:grid-cols-2">
                 <BigButton size="large" :disabled="balance <= 0" @click="openPay"><Wallet :size="24" aria-hidden="true" /> Terima Bayar</BigButton>
                 <BigButton size="large" variant="soft" :disabled="balance <= 0 || !customer.has_phone" @click="confirmRemind = true"><BellRing :size="24" aria-hidden="true" /> Kirim Tagihan WA</BigButton>
+                <a
+                    v-if="wa_billing_url && (balance > 0 || net_balance > 0)"
+                    :href="wa_billing_url"
+                    target="_blank"
+                    rel="noopener"
+                    class="pressable col-span-full inline-flex min-h-touch items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-lg font-bold text-white shadow-sm hover:bg-emerald-700"
+                >
+                    <MessageCircle :size="22" aria-hidden="true" />
+                    Kirim Tagihan via WhatsApp (Web / HP)
+                </a>
             </div>
             <p v-if="!customer.has_phone" class="text-base text-ink-soft">Tambahkan no HP pelanggan supaya bisa dikirimi tagihan.</p>
         </div>

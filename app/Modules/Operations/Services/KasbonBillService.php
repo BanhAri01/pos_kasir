@@ -109,12 +109,64 @@ class KasbonBillService
         $remaining = fn (Receivable $r) => $r->amount - $r->paid_amount;
         $due = $open->filter(fn (Receivable $r) => $r->due_date === null || $r->due_date->lte($today));
 
+        $grossBalance = (int) $open->sum($remaining);
+        $depositBalance = (int) ($customer->deposit_balance ?? 0);
+        $netBalance = max(0, $grossBalance - $depositBalance);
+        $dueBalance = (int) $due->sum($remaining);
+        $netDue = max(0, $dueBalance - $depositBalance);
+
         return [
             'open' => $open,
-            'balance' => (int) $open->sum($remaining),
-            'due' => (int) $due->sum($remaining),
+            'balance' => $grossBalance,
+            'due' => $dueBalance,
+            'deposit_balance' => $depositBalance,
+            'net_balance' => $netBalance,
+            'net_due' => $netDue,
             'due_date' => $open->pluck('due_date')->filter()->min(),
         ];
+    }
+
+    public function waBillingMessage(Customer $customer): string
+    {
+        $tenant = $this->context->get();
+        $today = now($tenant->timezone)->startOfDay();
+        $summary = $this->summary($customer, $today);
+        $link = $this->billUrl($customer);
+
+        $msg = "Halo Bapak/Ibu *{$customer->name}*,\n\n";
+        $msg .= "Berikut rincian tagihan dari *{$tenant->name}* per {$today->locale('id')->translatedFormat('j F Y')}:\n";
+        $msg .= "• Total Tagihan Nota: *" . Rupiah::format($summary['balance']) . "* ({$summary['open']->count()} nota)\n";
+        if ($summary['due'] > 0) {
+            $msg .= "• Tagihan Jatuh Tempo: *" . Rupiah::format($summary['due']) . "*\n";
+        }
+        if ($summary['deposit_balance'] > 0) {
+            $msg .= "• Saldo Titip Uang (Deposit): *-" . Rupiah::format($summary['deposit_balance']) . "*\n";
+        }
+        $msg .= "━━━━━━━━━━━━━━━━━━\n";
+        $msg .= "👉 *Sisa Kewajiban Bersih Anda: " . Rupiah::format($summary['net_balance']) . "*\n\n";
+        $msg .= "Rincian nota & konfirmasi pembayaran dapat dicek melalui tautan resmi:\n";
+        $msg .= "{$link}\n\n";
+        $msg .= "Mohon abaikan pesan ini bila pembayaran sudah dilakukan. Terima kasih atas kerja samanya.";
+
+        return $msg;
+    }
+
+    public function waBillingUrl(Customer $customer): ?string
+    {
+        if (! $customer->phone) {
+            return null;
+        }
+
+        $phone = preg_replace('/[^0-9]/', '', $customer->phone);
+        if (str_starts_with($phone, '08')) {
+            $phone = '628' . substr($phone, 2);
+        } elseif (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        }
+
+        $text = rawurlencode($this->waBillingMessage($customer));
+
+        return "https://wa.me/{$phone}?text={$text}";
     }
 
     public function send(Customer $customer): bool
@@ -127,10 +179,17 @@ class KasbonBillService
             return false;
         }
 
+        $sisaText = Rupiah::format($summary['net_balance']);
+        if ($summary['deposit_balance'] > 0) {
+            $sisaText .= ' (setelah dipotong titip uang ' . Rupiah::format($summary['deposit_balance']) . ')';
+        }
+
+        $tagihanAmount = $summary['net_due'] > 0 ? $summary['net_due'] : $summary['net_balance'];
+
         $message = $this->whatsapp->sendTemplate('kasbon_reminder', $customer->phone, [
             'nama' => $customer->name,
-            'sisa' => Rupiah::format($summary['balance']),
-            'tagihan' => Rupiah::format($summary['due'] ?: $summary['balance']),
+            'sisa' => $sisaText,
+            'tagihan' => Rupiah::format($tagihanAmount),
             'jatuh_tempo' => $this->formatDate($summary['due_date']) ?? '-',
             'tanggal' => $this->formatDate($today),
             'jumlah_nota' => (string) $summary['open']->count(),
@@ -148,10 +207,10 @@ class KasbonBillService
         return true;
     }
 
-    public function sendDue(Tenant $tenant): int
+    public function sendDue(Tenant $tenant, bool $ignoreHours = false): int
     {
         $now = now($tenant->timezone);
-        if (! self::settings($tenant)['auto'] || $now->hour < self::SEND_HOURS[0] || $now->hour >= self::SEND_HOURS[1]) {
+        if (! self::settings($tenant)['auto'] || (! $ignoreHours && ($now->hour < self::SEND_HOURS[0] || $now->hour >= self::SEND_HOURS[1]))) {
             return 0;
         }
 
