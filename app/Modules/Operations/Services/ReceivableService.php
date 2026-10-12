@@ -50,14 +50,16 @@ class ReceivableService
 
             $balance = (int) $open->sum(fn ($r) => $r->amount - $r->paid_amount);
             if ($balance <= 0) {
-                throw ValidationException::withMessages(['amount' => "{$customer->name} tidak punya utang."]);
-            }
-            if ($amount > $balance) {
-                throw ValidationException::withMessages(['amount' => 'Pembayaran melebihi utang. Sisa utang '.Rupiah::format($balance).'.']);
+                $customer->addDeposit($amount, 'deposit', 'Titip uang pelanggan', 'kasbon', null, $user->id);
+                activity('kasbon')->performedOn($customer)->causedBy($user)->log("Terima titip uang {$customer->name}: ".Rupiah::format($amount));
+                return 0;
             }
 
+            $overpayment = max(0, $amount - $balance);
+            $amountToDistribute = min($amount, $balance);
+
             $method = $paymentMethodId ? PaymentMethod::query()->find($paymentMethodId) : PaymentMethod::query()->where('type', 'cash')->first();
-            $remaining = $amount;
+            $remaining = $amountToDistribute;
             $first = true;
 
             foreach ($open as $receivable) {
@@ -85,9 +87,13 @@ class ReceivableService
                 $first = false;
             }
 
+            if ($overpayment > 0) {
+                $customer->addDeposit($overpayment, 'overpayment', 'Kelebihan pembayaran kasbon/utang', 'kasbon', null, $user->id);
+            }
+
             activity('kasbon')->performedOn($customer)->causedBy($user)->log("Terima pembayaran utang {$customer->name}: ".Rupiah::format($amount));
 
-            return $balance - $amount;
+            return max(0, $balance - $amount);
         });
     }
 

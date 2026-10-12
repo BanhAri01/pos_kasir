@@ -4,7 +4,7 @@
  * barang hampir habis, batch hampir kedaluwarsa, susut bulan ini, dan HPP per barang.
  */
 import { Deferred, Head, Link } from '@inertiajs/vue3';
-import { CalendarClock, ChevronRight, ClipboardList, PackageOpen, TrendingDown } from 'lucide-vue-next';
+import { CalendarClock, ChevronRight, ClipboardList, HandCoins, PackageOpen, TrendingDown } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import WarehouseFlow from '@/Components/WarehouseFlow.vue';
@@ -32,7 +32,18 @@ const skeleton = 'card h-24 animate-pulse bg-surface-2';
 
     <WarehouseFlow />
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <!-- Titip Uang Pelanggan Gudang -->
+        <Link :href="route('warehouse.deposits')" class="card pressable flex items-center gap-4 p-5 hover:ring-2 hover:ring-primary/30">
+            <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"><HandCoins :size="28" aria-hidden="true" /></span>
+            <span class="min-w-0 flex-1">
+                <span class="block font-display text-xl font-extrabold text-ink">Titip Uang & Tagihan WA</span>
+                <span class="block text-base text-ink-soft">Deposit pelanggan, potong utang, & WA</span>
+            </span>
+            <ChevronRight :size="26" class="text-ink-soft" aria-hidden="true" />
+        </Link>
+
+
         <!-- Susut bulan ini -->
         <Deferred data="shrinkage">
             <template #fallback><div :class="skeleton" /></template>

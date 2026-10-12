@@ -3,6 +3,7 @@
 namespace App\Modules\Operations\Http\Controllers;
 
 use App\Core\Support\Phone;
+use App\Core\Support\Rupiah;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
@@ -28,6 +29,28 @@ class PublicBillController extends Controller
             $summary = $this->bills->summary($customer, $today);
             $date = fn ($d) => $d?->locale('id')->translatedFormat('j M Y');
 
+            $ownerWaUrl = null;
+            if ($tenant->phone) {
+                $cleanPhone = preg_replace('/[^0-9]/', '', $tenant->phone);
+                if (str_starts_with($cleanPhone, '08')) {
+                    $cleanPhone = '628'.substr($cleanPhone, 2);
+                } elseif (str_starts_with($cleanPhone, '0')) {
+                    $cleanPhone = '62'.substr($cleanPhone, 1);
+                }
+                $waText = rawurlencode("Halo {$tenant->name}, saya {$customer->name} ingin konfirmasi pembayaran tagihan saya (Sisa Kewajiban Bersih: ".Rupiah::format($summary['net_balance']).").");
+                $ownerWaUrl = "https://wa.me/{$cleanPhone}?text={$waText}";
+            }
+
+            $deposits = $customer->deposits()->latest()->limit(5)->get()->map(fn ($d) => [
+                'id' => $d->id,
+                'type' => $d->type,
+                'type_label' => $d->type_label,
+                'amount' => $d->amount,
+                'balance_after' => $d->balance_after,
+                'notes' => $d->notes,
+                'date' => $date($d->created_at->timezone($tenant->timezone)),
+            ]);
+
             return Inertia::render('Order/Bill', [
                 'token' => $token,
                 'business' => [
@@ -40,6 +63,12 @@ class PublicBillController extends Controller
                 'today' => $date($today),
                 'balance' => $summary['balance'],
                 'due' => $summary['due'],
+                'deposit_balance' => $summary['deposit_balance'],
+                'net_balance' => $summary['net_balance'],
+                'net_due' => $summary['net_due'],
+                'owner_phone' => Phone::display($tenant->phone),
+                'owner_wa_url' => $ownerWaUrl,
+                'deposits' => $deposits,
                 'items' => $summary['open']->map(fn (Receivable $r) => [
                     'id' => $r->id,
                     'label' => $r->sale ? 'Nota '.$r->sale->number : ($r->note ?: 'Kasbon'),

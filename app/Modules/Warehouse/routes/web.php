@@ -5,6 +5,7 @@ use App\Modules\Warehouse\Http\Controllers\FormulaController;
 use App\Modules\Warehouse\Http\Controllers\LocationController;
 use App\Modules\Warehouse\Http\Controllers\ProductionController;
 use App\Modules\Warehouse\Http\Controllers\WarehouseDashboardController;
+use App\Modules\Warehouse\Http\Controllers\WarehouseDepositController;
 use App\Modules\Warehouse\Http\Controllers\WarehouseReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,4 +48,10 @@ Route::middleware(['auth', 'tenant', 'can:manage_stock'])->prefix('gudang')->gro
     });
 
     Route::get('batch', [BatchController::class, 'index'])->middleware('module:batch_lot')->name('warehouse.batches');
+
+    // Titip Uang Pelanggan & Tagihan WA Gudang
+    Route::get('titip-uang', [WarehouseDepositController::class, 'index'])->name('warehouse.deposits');
+    Route::post('titip-uang', [WarehouseDepositController::class, 'store'])->name('warehouse.deposits.store');
+    Route::post('titip-uang/{customer}/wa', [WarehouseDepositController::class, 'sendWa'])->name('warehouse.deposits.wa');
+    Route::get('titip-uang/{customer}/riwayat', [WarehouseDepositController::class, 'history'])->name('warehouse.deposits.history');
 });
