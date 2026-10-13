@@ -25,17 +25,21 @@ class Gateways
         return new MidtransGateway((string) $config['server_key'], (bool) $config['is_production']);
     }
 
-    public function forTenant(Tenant $tenant): ?PaymentGateway
+    public function forTenant(Tenant $tenant, bool $fallbackToPlatform = true): ?PaymentGateway
     {
         if ($this->fakeAllowed()) {
             return $this->fake();
         }
 
-        if (blank($tenant->midtrans_server_key)) {
-            return null;
+        if (filled($tenant->midtrans_server_key)) {
+            return new MidtransGateway((string) $tenant->midtrans_server_key, (bool) $tenant->midtrans_production);
         }
 
-        return new MidtransGateway((string) $tenant->midtrans_server_key, (bool) $tenant->midtrans_production);
+        if ($fallbackToPlatform) {
+            return $this->platform();
+        }
+
+        return null;
     }
 
     public function fake(): FakeGateway

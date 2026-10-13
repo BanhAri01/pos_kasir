@@ -1,12 +1,17 @@
 <?php
 
 use App\Modules\Billing\Http\Controllers\BillingController;
+use App\Modules\Billing\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'tenant'])->group(function () {
     Route::get('langganan', [BillingController::class, 'index'])->name('billing.index');
     Route::post('langganan/bayar', [BillingController::class, 'checkout'])->middleware('throttle:10,1')->name('billing.checkout');
     Route::get('langganan/selesai', [BillingController::class, 'finish'])->name('billing.finish');
+
+    Route::get('dompet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::post('dompet/rekening', [WalletController::class, 'updateBank'])->name('wallet.bank');
+    Route::post('dompet/tarik', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
 });
 
 Route::post('webhook/midtrans', [BillingController::class, 'webhook'])->middleware('throttle:120,1')->name('billing.webhook');

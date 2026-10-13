@@ -3,8 +3,8 @@
  * Pembayaran: total besar, pilih cara bayar, tombol uang cepat, kembalian otomatis.
  * Bisa dibayar dengan beberapa cara sekaligus (sebagian tunai, sebagian QRIS).
  */
-import { computed, ref, watch } from 'vue';
-import { Banknote, CreditCard, Landmark, Plus, QrCode, Smartphone, Trash2 } from 'lucide-vue-next';
+import { computed, onUnmounted, ref, watch } from 'vue';
+import { Banknote, CheckCircle2, CreditCard, Landmark, Plus, QrCode, RefreshCw, Smartphone, Trash2, X } from 'lucide-vue-next';
 import BigButton from '@/Components/ui/BigButton.vue';
 import BottomSheet from '@/Components/ui/BottomSheet.vue';
 import MoneyDisplay from '@/Components/ui/MoneyDisplay.vue';
@@ -14,6 +14,7 @@ import { canPayLater, hasModule, store, submitSale, totals } from '../store';
 import ToggleSwitch from '@/Components/ui/ToggleSwitch.vue';
 import { quickCashOptions } from '../lib/calculator';
 import { showToast } from '../lib/toast';
+import { api } from '../lib/api';
 
 const open = defineModel('open', { type: Boolean, default: false });
 const emit = defineEmits(['paid', 'customer']);
@@ -25,6 +26,13 @@ const saving = ref(false);
 const payLater = ref(false); // kasbon / tempo / bayar saat ambil / DP
 const dueDate = ref('');
 const sendWhatsapp = ref(false);
+
+// State QRIS Dinamis
+const showQrisModal = ref(false);
+const generatingQris = ref(false);
+const checkingQris = ref(false);
+const qrisData = ref(null);
+let qrisPollTimer = null;
 
 const total = computed(() => totals.value.total);
 const methods = computed(() => store.boot.payment_methods);
@@ -53,8 +61,78 @@ watch(open, (value) => {
         payLater.value = false;
         dueDate.value = '';
         sendWhatsapp.value = canSendWhatsapp.value;
+    } else {
+        closeQrisModal();
     }
 });
+
+onUnmounted(() => {
+    closeQrisModal();
+});
+
+async function generateDynamicQris() {
+    const amt = active.value?.amount || remaining.value || total.value;
+    if (amt <= 0) {
+        showToast('Nominal QRIS harus lebih dari Rp 0', 'error');
+        return;
+    }
+
+    generatingQris.value = true;
+    try {
+        const res = await api.post('/kasir/api/qris/generate', { amount: amt });
+        qrisData.value = res;
+        showQrisModal.value = true;
+        startQrisPolling(res.order_id);
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        generatingQris.value = false;
+    }
+}
+
+function startQrisPolling(orderId) {
+    stopQrisPolling();
+    qrisPollTimer = setInterval(async () => {
+        await checkQrisStatus(orderId, false);
+    }, 2500);
+}
+
+function stopQrisPolling() {
+    if (qrisPollTimer) {
+        clearInterval(qrisPollTimer);
+        qrisPollTimer = null;
+    }
+}
+
+async function checkQrisStatus(orderId, manual = true) {
+    if (checkingQris.value) return;
+    if (manual) checkingQris.value = true;
+
+    try {
+        const res = await api.get(`/kasir/api/qris/check/${orderId}`);
+        if (res.status === 'paid') {
+            stopQrisPolling();
+            showToast('Pembayaran QRIS Berhasil Diterima!', 'success');
+            if (active.value) {
+                active.value.amount = qrisData.value?.amount ?? active.value.amount;
+            }
+            showQrisModal.value = false;
+            pay();
+        } else if (manual) {
+            showToast('Pembayaran belum diterima. Menunggu pelanggan scan...', 'info');
+        }
+    } catch {
+        // Silently continue polling on minor network glitch
+    } finally {
+        if (manual) checkingQris.value = false;
+    }
+}
+
+function closeQrisModal() {
+    stopQrisPolling();
+    showQrisModal.value = false;
+    qrisData.value = null;
+}
 
 function chooseMethod(method) {
     const current = active.value;
@@ -146,6 +224,18 @@ async function pay() {
                         </div>
                         <MoneyInput v-model="payment.amount" label="Atau ketik jumlahnya" />
                     </template>
+                    <template v-else-if="payment.method.type === 'qris'">
+                        <MoneyInput v-model="payment.amount" :label="`Jumlah dibayar lewat ${payment.method.name}`" />
+                        <button
+                            type="button"
+                            class="pressable mt-2 flex min-h-touch w-full items-center justify-center gap-2 rounded-2xl border-2 border-primary bg-primary-soft text-base font-bold text-primary-ink hover:bg-primary/20"
+                            :disabled="generatingQris || (payment.amount ?? remaining) <= 0"
+                            @click="generateDynamicQris"
+                        >
+                            <QrCode :size="22" />
+                            {{ generatingQris ? 'Membuat QRIS...' : 'Tampilkan QRIS Dinamis (Auto Cek Bayar)' }}
+                        </button>
+                    </template>
                     <MoneyInput v-else v-model="payment.amount" :label="`Jumlah dibayar lewat ${payment.method.name}`" />
                 </template>
             </div>
@@ -211,6 +301,72 @@ async function pay() {
             <BigButton size="large" block :disabled="!ready || overLimit" :loading="saving" @click="pay">
                 {{ ready ? (payLater && remaining > 0 ? 'Simpan (Sisa Jadi Utang)' : 'Selesai, Simpan Pembayaran') : payLater ? 'Pilih pelanggan dulu' : 'Pilih uang yang diterima' }}
             </BigButton>
+        </div>
+
+        <!-- Modal Tampilan QRIS Dinamis -->
+        <div
+            v-if="showQrisModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+        >
+            <div class="flex w-full max-w-sm flex-col items-center rounded-3xl bg-surface p-6 text-center shadow-2xl">
+                <div class="mb-2 flex w-full items-center justify-between">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary-ink">
+                        <QrCode :size="14" /> QRIS Otomatis
+                    </span>
+                    <button
+                        type="button"
+                        class="flex size-9 items-center justify-center rounded-xl text-ink-soft hover:bg-ink/5"
+                        aria-label="Tutup QRIS"
+                        @click="closeQrisModal"
+                    >
+                        <X :size="20" />
+                    </button>
+                </div>
+
+                <h3 class="text-xl font-extrabold text-ink">Scan untuk Membayar</h3>
+                <p class="mt-1 font-display text-3xl font-extrabold text-primary-ink">
+                    {{ formatRupiah(qrisData?.amount ?? 0) }}
+                </p>
+
+                <!-- QR Display -->
+                <div class="my-4 flex size-56 items-center justify-center rounded-2xl border-2 border-line bg-white p-3 shadow-inner">
+                    <img
+                        v-if="qrisData?.qr_url"
+                        :src="qrisData.qr_url"
+                        alt="QRIS Code"
+                        class="size-full object-contain"
+                    />
+                    <div v-else class="flex flex-col items-center justify-center p-2 text-ink">
+                        <QrCode :size="90" class="mb-2 text-primary" />
+                        <span class="break-all font-mono text-xs font-bold">{{ qrisData?.order_id }}</span>
+                    </div>
+                </div>
+
+                <!-- Polling Status Badge -->
+                <div class="flex items-center gap-2 text-sm font-bold text-ink-soft">
+                    <span class="size-2.5 animate-ping rounded-full bg-primary" />
+                    <span>Menunggu pembayaran pelanggan...</span>
+                </div>
+
+                <div class="mt-5 flex w-full flex-col gap-2">
+                    <button
+                        type="button"
+                        class="pressable flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-bold text-on-primary hover:opacity-90"
+                        :disabled="checkingQris"
+                        @click="checkQrisStatus(qrisData?.order_id, true)"
+                    >
+                        <RefreshCw :size="18" :class="{ 'animate-spin': checkingQris }" />
+                        {{ checkingQris ? 'Mengecek...' : 'Cek Status Sekarang' }}
+                    </button>
+                    <button
+                        type="button"
+                        class="pressable flex min-h-11 w-full items-center justify-center rounded-xl text-base font-bold text-ink-soft hover:bg-ink/5"
+                        @click="closeQrisModal"
+                    >
+                        Tutup & Kembali
+                    </button>
+                </div>
+            </div>
         </div>
     </BottomSheet>
 </template>

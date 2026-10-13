@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import {
     Armchair, Bike, Boxes, Calculator, CalendarDays, ChefHat, CreditCard, HandCoins, House, IdCard, LayoutGrid, ListChecks, ListOrdered,
     MessageCircle, NotebookPen, Package, Palette, ReceiptText, SlidersHorizontal, Store, Tags, Truck, UserRound, Users, Wallet, ChartColumn,
-    BadgePercent, CalendarClock, Crown, Gift, QrCode, ShoppingBag, PackageSearch, Share2, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse,
+    BadgePercent, CalendarClock, Crown, Gift, QrCode, ShoppingBag, PackageSearch, Share2, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse, Sparkles,
 } from 'lucide-vue-next';
 import { useAuth } from './useAuth';
 
@@ -40,7 +40,7 @@ export function useNavigation() {
                 label: 'Lainnya',
                 href: route('more'),
                 icon: LayoutGrid,
-                match: ['more', 'outlets.*', 'staff.*', 'modules.*', 'preferences.*', 'billing.*', 'self-orders.*', 'loyalty.*', 'online-orders.*', 'restock.*', 'referral.*', 'owner-report.*', 'dev.*', 'customers.*', 'payment-methods.*', ...businessRoutes],
+                match: ['more', 'outlets.*', 'staff.*', 'modules.*', 'preferences.*', 'billing.*', 'wallet.*', 'assistant.*', 'self-orders.*', 'loyalty.*', 'online-orders.*', 'restock.*', 'referral.*', 'owner-report.*', 'dev.*', 'customers.*', 'payment-methods.*', ...businessRoutes],
                 mobileOnly: true,
                 show: true,
             },
@@ -49,6 +49,8 @@ export function useNavigation() {
 
     const settings = computed(() =>
         [
+            { key: 'wallet', label: 'Dompet & Tarik Saldo', description: 'Saldo QRIS, riwayat uang masuk & pencairan', href: route('wallet.index'), icon: Wallet, match: ['wallet.*'], show: can('manage_business') },
+            { key: 'assistant', label: 'Asisten Toko (AI)', description: 'Tanya omset, stok & analisis via chat atau WA', href: route('assistant.index'), icon: Sparkles, match: ['assistant.*'], show: can('manage_business') },
             { key: 'customers', label: 'Pelanggan', description: 'Data & riwayat belanja pelanggan', href: route('customers.index'), icon: UserRound, match: ['customers.*'], show: can('manage_customers') },
             { key: 'staff', label: 'Karyawan', description: 'Tambah karyawan dan atur PIN', href: route('staff.index'), icon: Users, match: ['staff.*'], show: can('manage_staff') },
             { key: 'outlets', label: 'Outlet / Cabang', description: 'Tempat usaha, pajak, dan struk', href: route('outlets.index'), icon: Store, match: ['outlets.*'], show: can('manage_outlets') },

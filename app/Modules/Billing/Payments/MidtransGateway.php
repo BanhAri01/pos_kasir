@@ -112,19 +112,65 @@ class MidtransGateway implements PaymentGateway
         };
     }
 
+    public function createDirectQris(string $orderId, int $amount, ?string $notificationUrl = null): array
+    {
+        $headers = $notificationUrl ? ['X-Override-Notification' => $notificationUrl] : [];
+
+        try {
+            $response = $this->client($this->coreUrl())->withHeaders($headers)->post('/v2/charge', [
+                'payment_type' => 'qris',
+                'transaction_details' => [
+                    'order_id' => $orderId,
+                    'gross_amount' => $amount,
+                ],
+                'qris' => [
+                    'acquirer' => 'gopay',
+                ],
+            ]);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('Tidak bisa terhubung ke Midtrans.', previous: $exception);
+        }
+
+        if ($response->failed() && (string) $response->json('status_code') !== '201') {
+            throw new RuntimeException('Midtrans menolak QRIS: '.implode(', ', (array) $response->json('error_messages', [$response->status()])));
+        }
+
+        $qrUrl = null;
+        foreach ((array) $response->json('actions', []) as $action) {
+            if (($action['name'] ?? '') === 'generate-qr-code') {
+                $qrUrl = $action['url'] ?? null;
+                break;
+            }
+        }
+
+        return [
+            'order_id' => $orderId,
+            'gross_amount' => $amount,
+            'qr_string' => (string) $response->json('qr_string'),
+            'qr_url' => $qrUrl,
+            'status' => (string) $response->json('transaction_status', 'pending'),
+        ];
+    }
+
     private function client(string $baseUrl): PendingRequest
     {
         if ($this->serverKey === '') {
             throw new RuntimeException('Server key Midtrans belum diisi.');
         }
 
-        return Http::baseUrl($baseUrl)
+        $client = Http::baseUrl($baseUrl)
             ->withBasicAuth($this->serverKey, '')
             ->acceptJson()
             ->asJson()
             ->timeout(20)
             ->retry(2, 300, fn (Throwable $e) => $e instanceof ConnectionException
                 || ($e instanceof RequestException && $e->response->serverError()), throw: false);
+
+        if (app()->isLocal() && ! ini_get('curl.cainfo')) {
+            $client->withoutVerifying();
+        }
+
+        return $client;
     }
 
     private function snapUrl(): string
