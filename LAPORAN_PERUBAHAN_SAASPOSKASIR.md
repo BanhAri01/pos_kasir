@@ -1,7 +1,7 @@
 # LAPORAN PERUBAHAN & PEMBARUAN SISTEM SAAS POS KASIR
 **Sistem Aplikasi Kasir & Manajemen Gudang Universal Multi-Tenant**  
 *Dokumentasi Resmi Pembaruan Fitur, Logika Bisnis, Audit Keamanan, Pengujian & Panduan Deployment*  
-*Tanggal: 13 Oktober 2026*
+*Tanggal Pembaruan Terakhir: 14 Oktober 2026*
 
 ---
 
@@ -13,11 +13,14 @@ Pembaruan utama berfokus pada:
 2. **Modul Gudang Universal & Titip Uang (Customer Deposit)** yang fleksibel untuk segala jenis bidang usaha (Grosir, Retail, F&B, Distribusi Bahan Baku), lengkap dengan audit trail mutasi saldo.
 3. **Otomasi Kelebihan Bayar & Pelunasan Piutang via Deposit**: Kelebihan nominal bayar otomatis masuk deposit, serta kasir/gudang dapat melunasi nota langsung dari saldo titip uang.
 4. **Restorasi Landing Page Modern Universal**: Menghilangkan modul spesifik peternakan yang telah dipindahkan ke aplikasi HEFAM, menyajikan value proposition komprehensif, simulasi bisnis, serta optimasi SEO (`sitemap.xml` & `robots.txt`).
-5. **Audit Keamanan Ketat Multi-Tenancy**: Mencegah IDOR pada rincian deposit, pembatasan hak akses (*permission*), rate limiting, dan proteksi transaksi atomik (*race condition*).
+5. **Model Pembayaran Sentral QRIS Dinamis & Dompet Toko (MokaPay Model)**: Tenant dapat menerima pembayaran QRIS tanpa perlu mendaftar akun Midtrans mandiri atau izin aggregator BI/OJK. Pembayaran QRIS kasir diproses lewat akun Midtrans platform secara otomatis, dipotong fee MDR standar 0.7%, dan dikreditkan ke dompet toko (`TenantWallet`) dengan fitur pencairan saldo ke rekening bank.
+6. **Asisten Toko Cerdas Berbasis AI (Hermes POS AI)**: Asisten analisis performa toko multi-kanal (Web Chat Dashboard, Bot WhatsApp Fonnte, dan Artisan CLI) yang terhubung langsung ke 6 alat analitik database riil (omset, produk terlaris, stok menipis, laba rugi, kasbon pelanggan, performa kasir). Dilengkapi simulator gratis tanpa biaya (`DemoLlm`) serta integrasi resmi Anthropic Claude SDK (`ClaudeLlm`).
+7. **Audit Keamanan Ketat Multi-Tenancy**: Mencegah IDOR pada rincian deposit, isolasi dompet finansial antar-tenant, proteksi *webhook replay*, *whitelist* nomor WhatsApp bot, pembatasan hak akses (*permission*), rate limiting, dan proteksi transaksi atomik (*race condition*).
 
-Seluruh **428 skenario pengujian otomatis (2.403 assertions)** telah dijalankan dan dinyatakan **LULUS 100% (PASS)** tanpa kendala.
+Seluruh **452 skenario pengujian otomatis (2.513 assertions)** telah dijalankan dan dinyatakan **LULUS 100% (PASS)** tanpa kendala.
 
 ---
+
 
 ## 2. Rincian Pembaruan Fitur & Logika Bisnis
 
@@ -90,16 +93,98 @@ Seluruh **428 skenario pengujian otomatis (2.403 assertions)** telah dijalankan 
 
 ---
 
+### E. Model Pembayaran Sentral QRIS Dinamis & Dompet Toko (MokaPay Model)
+* **Latar Belakang**: Tenant/pemilik toko pada umumnya tidak memiliki NPWP badan usaha, izin payment aggregator, atau akun Midtrans sendiri. Dengan model Moka POS (MokaPay), seluruh transaksi QRIS kasir diproses terpusat melalui akun Midtrans platform SaaS, memotong fee resmi QRIS (0.7%), dan mencatat pendapatan bersih ke dompet toko masing-masing untuk dicairkan kapan saja.
+* **Fitur & Logika Bisnis**:
+  1. **Generasi QRIS Dinamis Real-Time di Kasir (`PaymentSheet.vue` & `PosQrisController.php`)**:
+     - Saat kasir memilih metode pembayaran **QRIS**, tersedia tombol **"Tampilkan QRIS Dinamis"**.
+     - Sistem memanggil Midtrans Core API `/v2/charge` dengan tipe `qris` atas nama akun platform.
+     - Modal pop-up layar penuh menampilkan QR Code gambar dan kode string QRIS dengan nominal belanja pas.
+     - Polling otomatis aktif setiap 2,5 detik mengecek status `/kasir/api/qris/check/{orderId}`. Begitu pembeli membayar via mobile banking / e-wallet apa pun, modal tertutup otomatis dan pesanan tersimpan serta tercetak lunas.
+  2. **Webhook Settlement Midtrans & Potongan MDR 0.7% (`MidtransGateway.php` & `WalletService.php`)**:
+     - Notifikasi pembayaran Midtrans (`settlement` / `capture`) diverifikasi dengan signature SHA512.
+     - Potongan MDR standar 0.7% (70 basis points) dihitung otomatis: `Fee = round(Gross * 0.007)`.
+     - Dana bersih (`Net = Gross - Fee`) dikreditkan langsung ke saldo dompet toko (`TenantWallet`).
+     - **Proteksi Idempotent**: Callback berulang dari Midtrans dicegah mendobelkan saldo dengan pengecekan referensi mutasi unik.
+  3. **Dashboard Dompet Toko & Pengajuan Tarik Saldo (`/wallet` - `Wallet.vue` & `WalletController.php`)**:
+     - Ringkasan metric: **Saldo Aktif**, **Total Pendapatan QRIS**, dan **Dana Sedang Ditarik (Pending)**.
+     - Pengaturan Rekening Bank Pencairan: Nama bank tujuan (BCA, BRI, Mandiri, BNI, dll.), nomor rekening, dan nama pemilik rekening.
+     - Pengajuan Penarikan Saldo (Withdrawal): Minimal nominal Rp 20.000 dengan validasi saldo mencukupi dan kelengkapan rekening bank.
+     - Penguncian Saldo Atomik: Saat pengajuan dibuat, saldo aktif langsung dikurangi dan dipindahkan ke `pending_withdrawal`.
+     - Persetujuan / Penolakan Admin Platform: Jika disetujui, dana pending diselesaikan; jika ditolak, saldo otomatis dikembalikan ke saldo aktif dengan mutasi kredit kompensasi (`withdrawal_refund`).
+* **File Terkait**:
+  - `app/Modules/Billing/Database/Migrations/2026_10_14_000001_create_tenant_wallets_and_withdrawals_table.php`
+  - `app/Modules/Billing/Models/TenantWallet.php`
+  - `app/Modules/Billing/Models/WalletMutation.php`
+  - `app/Modules/Billing/Models/WithdrawalRequest.php`
+  - `app/Modules/Billing/Services/WalletService.php`
+  - `app/Modules/Billing/Http/Controllers/WalletController.php`
+  - `app/Modules/Billing/Payments/MidtransGateway.php`
+  - `app/Modules/Pos/Http/Controllers/PosQrisController.php`
+  - `resources/js/pos/components/PaymentSheet.vue`
+  - `resources/js/Pages/Billing/Wallet.vue`
+  - `resources/js/composables/useNavigation.js`
+
+---
+
+### F. Asisten Toko Cerdas Berbasis AI (Hermes POS AI)
+* **Latar Belakang**: Pemilik toko memerlukan wawasan kilat tentang omset harian, produk terlaris, ketersediaan stok kritis, dan kasbon pelanggan tanpa harus membuka puluhan menu laporan secara manual. Asisten AI hadir di web chat dan bot WhatsApp resmi toko.
+* **Fitur & Logika Bisnis**:
+  1. **6 Alat Analisis Data POS Riil (Read-Only & Isolasi Ketat Tenant)**:
+     - `omset_penjualan`: Menganalisis total omset, jumlah transaksi, rata-rata belanja, dan perbandingan tunai vs QRIS/transfer.
+     - `produk_terlaris`: Mengidentifikasi 5-10 menu atau produk dengan volume penjualan dan nominal tertinggi.
+     - `stok_menipis`: Mendeteksi bahan baku atau barang dagangan yang berada di bawah stok minimum aman.
+     - `laba_rugi`: Menghitung estimasi pendapatan kotor, modal HPP, pengeluaran operasional, dan laba bersih.
+     - `kasbon_pelanggan`: Menampilkan rekap pelanggan dengan saldo utang nota aktif yang belum lunas.
+     - `performa_kasir`: Mengevaluasi keaktifan dan total penjualan per petugas kasir.
+  2. **Simulator Bebas Biaya (Zero Cost Simulator - `DemoLlm.php`)**:
+     - Sistem bekerja langsung tanpa mewajibkan saldo Anthropic / API key berbayar.
+     - Menganalisis niat (*intent*) pertanyaan bahasa Indonesia, menjalankan query database tenant terkait, dan menyusun jawaban analitik yang ramah, profesional, dan akurat.
+  3. **Integrasi Resmi Anthropic Claude SDK (`ClaudeLlm.php`)**:
+     - Apabila kunci `ANTHROPIC_API_KEY` dikonfigurasi di `.env`, sistem otomatis memanfaatkan model Claude 3.5 Haiku / Opus dengan dynamic tool use.
+     - Dilengkapi fallback otomatis ke `DemoLlm` jika kuota API habis atau koneksi Anthropic terganggu.
+  4. **Multi-Channel Access**:
+     - **Web Chat Dashboard (`/assistant`)**: Riwayat percakapan interaktif, kartu ringkasan penjualan, tombol pertanyaan instan, dan tab manajemen nomor WhatsApp terdaftar.
+     - **Bot WhatsApp Fonnte (`/webhook/fonnte/assistant`)**: Pemilik toko dapat mengirim pesan WA langsung ke nomor bot toko dan menerima balasan instan. Dilindungi proteksi ketat *whitelist* (hanya nomor HP pemilik yang terdaftar yang diproses).
+     - **Artisan CLI Command (`php artisan pos:asisten`)**: Eksekusi perintah analitik via terminal server untuk keperluan pemeliharaan atau skrip automasi.
+  5. **Pengendalian Kuota & Biaya (`AiQuota.php` & `AiPricing.php`)**:
+     - Pembatasan 100 pesan analitik per hari per tenant dengan auto-reset harian.
+     - Pelacakan biaya token ke IDR untuk memastikan transparansi operasional.
+* **File Terkait**:
+  - `app/Modules/Assistant/Database/Migrations/2026_10_14_000002_create_pos_assistant_tables.php`
+  - `app/Modules/Assistant/Models/AssistantMessage.php`
+  - `app/Modules/Assistant/Models/TenantAssistantPhone.php`
+  - `app/Modules/Assistant/Models/AssistantDailyUsage.php`
+  - `app/Modules/Assistant/Services/AiTools.php`
+  - `app/Modules/Assistant/Services/DemoLlm.php`
+  - `app/Modules/Assistant/Services/ClaudeLlm.php`
+  - `app/Modules/Assistant/Services/AiAgent.php`
+  - `app/Modules/Assistant/Services/AiQuota.php`
+  - `app/Modules/Assistant/Services/AiPricing.php`
+  - `app/Modules/Assistant/Jobs/AnswerAssistantWhatsApp.php`
+  - `app/Modules/Assistant/Http/Controllers/AssistantController.php`
+  - `app/Modules/Assistant/Http/Controllers/AssistantWebhookController.php`
+  - `app/Console/Commands/PosAssistantCommand.php`
+  - `resources/js/Pages/Assistant/Index.vue`
+  - `resources/js/composables/useNavigation.js`
+
+---
+
+
 ## 3. Audit Keamanan & Mitigasi Kerentanan (Security Audit)
 
 | Area Audit | Skenario Resiko | Mitigasi yang Diterapkan | Status |
 | :--- | :--- | :--- | :---: |
 | **Isolasi Multi-Tenant (IDOR)** | Percobaan melihat atau memodifikasi saldo titip uang milik usaha (*tenant*) lain melalui ID pelanggan. | Controller memvalidasi `customer->tenant_id === context->tenant_id`. Permintaan lintas tenant langsung ditolak dengan HTTP 404/403. | **TERUJI AMAN** |
-| **Otorisasi Hak Akses (RBAC)** | Karyawan kasir biasa tanpa izin stok/keuangan membuka menu gudang titip uang. | Dilindungi middleware `permission:manage_stock` dan validasi hak akses kasir/manajer. | **TERUJI AMAN** |
-| **Race Condition pada Saldo Deposit** | Penarikan atau pemotongan saldo deposit dilakukan ganda dalam waktu bersamaan. | Menggunakan transaksi database atomik `DB::transaction()` dan penguncian baris `lockForUpdate()` pada entitas pelanggan. | **TERUJI AMAN** |
-| **Pencegahan Saldo Negatif** | Pengurangan saldo deposit melebihi ketersediaan deposit aktif. | Validasi ketat `if ($amount > $customer->deposit_balance)` melempar `ValidationException` dan rollback otomatis. | **TERUJI AMAN** |
+| **Isolasi Finansial Dompet Toko** | Percobaan melihat atau menarik saldo dompet milik tenant lain. | Model `TenantWallet`, `WalletMutation`, dan `WithdrawalRequest` dilindungi `BelongsToTenant` dan `TenantScope`. Validasi `runAs` dan cek tenant ketat pada setiap controller. | **TERUJI AMAN** |
+| **Idempotency Webhook Midtrans** | Midtrans mengirimkan notifikasi settlement berulang yang berpotensi menggandakan kredit saldo. | Pengecekan referensi transaksi unik pada `wallet_mutations` dan status pesanan sebelum saldo ditambahkan ke `TenantWallet`. | **TERUJI AMAN** |
+| **Pencegahan Replay / Spoofing Fonnte Webhook** | Nomor WhatsApp asing atau pesan palsu dikirim ke webhook asisten AI toko. | Endpoint `webhook/fonnte/assistant` menerapkan verifikasi ketat whitelist nomor HP terdaftar (`TenantAssistantPhone`). Pesan dari nomor tidak dikenal otomatis diabaikan. | **TERUJI AMAN** |
+| **Isolasi Data pada Tool AI POS** | Asisten AI membaca data penjualan, laba, atau piutang milik toko lain. | Seluruh method pada `AiTools` dibatasi ketat oleh `TenantContext::runAs` dan `$tenant->id`, menjamin 100% data toko lain tidak dapat dibaca. | **TERUJI AMAN** |
+| **Otorisasi Hak Akses (RBAC)** | Karyawan kasir biasa tanpa izin stok/keuangan membuka menu gudang titip uang atau dompet toko. | Dilindungi middleware `permission:manage_stock` dan otorisasi pemilik toko (*owner*). | **TERUJI AMAN** |
+| **Race Condition pada Saldo Dompet & Deposit** | Penarikan atau pemotongan saldo dilakukan ganda dalam waktu bersamaan. | Menggunakan transaksi database atomik `DB::transaction()` dan penguncian baris `lockForUpdate()`. | **TERUJI AMAN** |
+| **Pencegahan Saldo Negatif** | Pengurangan saldo deposit atau penarikan dompet melebihi saldo aktif yang tersedia. | Validasi ketat `if ($amount > $wallet->balance)` melempar `ValidationException` dan rollback otomatis. | **TERUJI AMAN** |
 | **Validasi Format Nomor WhatsApp** | Nomor telepon pelanggan format lokal `08...` gagal saat dipanggil API gateway atau wa.me. | Normalisasi otomatis format nomor: menghilangkan karakter non-digit dan mengonversi awalan `0` / `08` menjadi `628`. | **TERUJI AMAN** |
-| **Brute Force & Spamming** | Akses berulang ke portal publik atau pengiriman pesan tagihan beruntun. | Penerapan middleware `throttle:60,1` pada portal publik dan pembatasan frekuensi pengingat kasbon. | **TERUJI AMAN** |
+| **Brute Force & Spamming** | Akses berulang ke portal publik atau pengiriman pesan tagihan beruntun. | Penerapan middleware `throttle:60,1` pada portal publik dan pembatasan kuota 100 pesan/hari pada asisten AI. | **TERUJI AMAN** |
 
 ---
 
@@ -108,13 +193,43 @@ Seluruh **428 skenario pengujian otomatis (2.403 assertions)** telah dijalankan 
 Pengujian dijalankan pada suite PHPUnit / Pest:
 
 ```text
-Tests:    428 passed (2403 assertions)
-Duration: 38.05s
+Tests:    452 passed (2513 assertions)
+Duration: 40.60s
 Status:   100% PASS
 ```
 
 ### Rincian Pengujian Modul Terkait:
-1. **`Tests\Feature\Warehouse\WarehouseDepositTest` (13 skenario - 100% PASS)**:
+1. **`Tests\Feature\Billing\WalletTest` (8 skenario - 100% PASS)**:
+   - Membuat dompet otomatis saat pertama kali diakses: **PASS**
+   - Mencatat penerimaan QRIS dan memotong MDR 0.7% dengan benar: **PASS**
+   - Memperbarui informasi rekening bank tujuan pencairan: **PASS**
+   - Menolak penarikan saldo jika melebihi saldo tersedia atau rekening belum lengkap: **PASS**
+   - Memproses pengajuan penarikan dana dan mengunci saldo ke `pending_withdrawal`: **PASS**
+   - Menyetujui penarikan saldo dan mencatat mutasi debet: **PASS**
+   - Mengembalikan saldo saat penarikan ditolak admin (`withdrawal_refund`): **PASS**
+   - Memuat halaman dompet dengan komponen Inertia Vue lengkap: **PASS**
+
+2. **`Tests\Feature\Assistant\PosAssistantTest` (12 skenario - 100% PASS)**:
+   - Tool menghitung omset penjualan dengan data riil: **PASS**
+   - Tool menampilkan daftar produk terlaris: **PASS**
+   - Tool mendeteksi stok yang kritis atau menipis: **PASS**
+   - Tool menghitung estimasi laba rugi kotor dan operasional: **PASS**
+   - Tool menampilkan daftar kasbon piutang pelanggan: **PASS**
+   - `DemoLlm` menjawab pertanyaan omset dengan sopan, natural, dan tanpa biaya: **PASS**
+   - `AiAgent` menyimpan riwayat pertanyaan dan respon di database: **PASS**
+   - Mengirim pertanyaan lewat endpoint web asisten: **PASS**
+   - Menambah dan menghapus nomor WhatsApp yang diizinkan (*whitelist*): **PASS**
+   - Memproses webhook Fonnte WhatsApp untuk nomor terdaftar: **PASS**
+   - Menolak webhook WhatsApp dari nomor asing yang belum terdaftar: **PASS**
+   - Menjalankan command `php artisan pos:asisten` dari Artisan CLI: **PASS**
+
+3. **`Tests\Feature\Pos\PosQrisTest` (4 skenario - 100% PASS)**:
+   - Menghasilkan kode QRIS dinamis via Midtrans Core API saat transaksi kasir: **PASS**
+   - Mengecek status QRIS yang belum dibayar (*polling endpoint*): **PASS**
+   - Memproses webhook settlement Midtrans dan mengkredit saldo dompet: **PASS**
+   - Mencegah dobel kredit jika webhook dipanggil berulang kali (*idempotency*): **PASS**
+
+4. **`Tests\Feature\Warehouse\WarehouseDepositTest` (13 skenario - 100% PASS)**:
    - Menampilkan halaman gudang titip uang dengan metric dan daftar pelanggan: **PASS**
    - Mencatat setor titip uang baru dari gudang: **PASS**
    - Menarik saldo titip uang bila saldo mencukupi: **PASS**
@@ -129,7 +244,7 @@ Status:   100% PASS
    - Menolak kirim WA tagihan untuk pelanggan usaha lain: **PASS**
    - Karyawan tanpa izin stok dilarang mengakses menu titip uang: **PASS**
 
-2. **`Tests\Feature\Operations\FonnteKasbonReminderTest` (7 skenario - 100% PASS)**:
+5. **`Tests\Feature\Operations\FonnteKasbonReminderTest` (7 skenario - 100% PASS)**:
    - Mengirim pesan WhatsApp via Fonnte API saat utang kasbon jatuh tempo: **PASS**
    - Memperhitungkan potongan saldo titip uang / deposit pelanggan: **PASS**
    - Tidak mengirim pesan bila jatuh tempo belum tiba: **PASS**
@@ -138,10 +253,10 @@ Status:   100% PASS
    - Tidak mengirim pesan bila opsi tagih otomatis dinonaktifkan: **PASS**
    - Menangani kegagalan Fonnte dengan aman (graceful failure): **PASS**
 
-3. **`Tests\Feature\LandingTest` (100% PASS)**:
+6. **`Tests\Feature\LandingTest` (100% PASS)**:
    - Akses landing page publik universal, respon HTTP 200, dan komponen Inertia Vue ter-render sempurna: **PASS**
 
-4. **`Tests\Feature\Tenancy\TenantIsolationTest` (15 skenario - 100% PASS)**:
+7. **`Tests\Feature\Tenancy\TenantIsolationTest` (15 skenario - 100% PASS)**:
    - Isolasi data tenant di level Model, Global Scope, dan HTTP Controller: **PASS**
 
 ---
@@ -154,21 +269,44 @@ Jalankan perintah berikut di lingkungan server production:
 php artisan migrate --force
 ```
 *Tabel yang ditambahkan / dimutasi:*
-- `warehouse_deposits`: Menyimpan riwayat setor, tarik, kelebihan bayar, dan pemotongan nota.
+- `warehouse_deposits`: Menyimpan riwayat setor, tarik, kelebihan bayar, dan pemotongan nota titip uang.
+- `tenant_wallets`: Menyimpan saldo aktif, total omset QRIS, pending penarikan, dan info rekening bank toko.
+- `wallet_mutations`: Mencatat histori debit/kredit mutasi dompet, fee MDR, saldo akhir, dan referensi transaksi.
+- `withdrawal_requests`: Mencatat permohonan penarikan dana toko ke rekening bank (BCA, BRI, Mandiri, dll.).
+- `assistant_messages`: Menyimpan riwayat tanya-jawab percakapan asisten toko AI.
+- `tenant_assistant_phones`: Whitelist nomor WhatsApp pemilik toko yang diizinkan mengakses asisten via WA.
+- `assistant_daily_usage`: Pelacakan batas kuota harian asisten AI (100 pesan/hari per tenant).
 
-### B. Konfigurasi Gateway WhatsApp Fonnte di `.env`
-Pastikan kredensial Fonnte aktif pada `.env`:
+### B. Konfigurasi Variabel Lingkungan di `.env`
+Pastikan variabel pendukung berikut terkonfigurasi di server production:
 ```env
-# Provider WhatsApp Gateway
+# Provider WhatsApp Gateway (Pengingat Tagihan & Bot Asisten)
 WA_PROVIDER=fonnte
 FONNTE_TOKEN=token_fonnte_anda_disini
 FONNTE_URL=https://api.fonnte.com/send
+
+# Payment Gateway Midtrans (Model Sentral MokaPay)
+MIDTRANS_SERVER_KEY=Mid-server-xxxxxxxxxxxx
+MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxx
+MIDTRANS_IS_PRODUCTION=true
+MIDTRANS_SNAP_URL=https://app.midtrans.com/snap/v1/transactions
+
+# AI Store Assistant (Opsional - Default gratis tanpa biaya memakai DemoLlm)
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-3-5-haiku-20241022
 
 # Zona Waktu Operasional
 APP_TIMEZONE=Asia/Makassar
 ```
 
-### C. Pembersihan Cache & Build Aset Frontend
+### C. Konfigurasi Webhook Fonnte untuk Bot Asisten WhatsApp
+Di dashboard akun Fonnte (https://fonnte.com), arahkan webhook penerimaan pesan ke endpoint:
+```text
+https://domainanda.com/webhook/fonnte/assistant
+```
+*Sistem otomatis memverifikasi nomor pengirim. Jika nomor pengirim terdaftar di menu "Asisten Toko" tenant terkait, bot akan langsung membalas pertanyaan analitik secara otomatis.*
+
+### D. Pembersihan Cache & Build Aset Frontend
 Lakukan optimasi cache Laravel:
 ```bash
 php artisan optimize:clear
@@ -178,7 +316,7 @@ php artisan view:cache
 ```
 *Catatan: File aset Vite frontend di folder `public/build/` telah dikompilasi siap pakai.*
 
-### D. Konfigurasi Cron Job cPanel
+### E. Konfigurasi Cron Job cPanel
 Pastikan cron job cPanel mengeksekusi scheduler Laravel setiap menit:
 ```bash
 * * * * * cd /home/USER/public_html && php artisan schedule:run >> /dev/null 2>&1
@@ -189,3 +327,4 @@ Pastikan cron job cPanel mengeksekusi scheduler Laravel setiap menit:
 ---
 
 *Laporan ini disusun sebagai dokumentasi teknis resmi pembaruan sistem SaaS POS Kasir.*
+
