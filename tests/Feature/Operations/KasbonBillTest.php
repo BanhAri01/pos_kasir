@@ -139,6 +139,7 @@ describe('halaman tagihan & bukti bayar', function () {
             ->has('items', 1)
             ->where('items.0.receipt_url', fn ($url) => str_contains($url, '/struk/') && str_contains($url, 'signature=')));
 
+        $this->get($this->link)->assertSee('noindex, nofollow', false);
         $this->get(route('kasbon.bill', str_repeat('a', 40)))->assertNotFound();
     });
 

@@ -212,19 +212,20 @@ class WarehouseDepositController extends Controller
 
                 $deductAmount = min($data['amount'], $openDebt);
 
+                $this->receivables->pay(
+                    customer: $customer,
+                    amount: $deductAmount,
+                    paymentMethodId: null,
+                    user: $user,
+                    fromDeposit: true,
+                );
+
                 $customer->addDeposit(
                     amount: $deductAmount,
                     type: 'deduction',
                     notes: $data['notes'] ?: 'Potong utang nota aktif dari saldo titip uang',
                     source: 'warehouse',
                     userId: $user?->id
-                );
-
-                $this->receivables->pay(
-                    customer: $customer,
-                    amount: $deductAmount,
-                    paymentMethodId: $data['payment_method_id'] ?? null,
-                    user: $user
                 );
 
                 return back()->with('success', "Utang nota {$customer->name} berhasil dipotong ".Rupiah::format($deductAmount).' dari saldo titip uang.');

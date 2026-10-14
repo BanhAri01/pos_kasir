@@ -2,22 +2,27 @@
 
 namespace App\Modules\Customer\Models;
 
+use App\Core\Support\Rupiah;
 use App\Core\Tenancy\BelongsToTenant;
 use App\Modules\Catalog\Models\PriceLevel;
 use App\Modules\Operations\Models\CustomerServiceNote;
 use App\Modules\Operations\Models\Membership;
 use App\Modules\Operations\Models\Receivable;
 use App\Modules\Pos\Models\Sale;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Modules\Warehouse\Models\CustomerDeposit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class Customer extends Model
 {
     use BelongsToTenant, SoftDeletes;
 
-    protected $fillable = ['uuid', 'name', 'phone', 'address', 'notes', 'member_code', 'price_level_id', 'credit_limit', 'billing_day', 'deposit_balance'];
+    protected $fillable = ['uuid', 'name', 'phone', 'address', 'notes', 'member_code', 'price_level_id', 'credit_limit', 'billing_day'];
 
     protected $hidden = ['bill_token'];
 
@@ -42,7 +47,7 @@ class Customer extends Model
 
     public function deposits(): HasMany
     {
-        return $this->hasMany(\App\Modules\Warehouse\Models\CustomerDeposit::class);
+        return $this->hasMany(CustomerDeposit::class);
     }
 
     public function memberships(): HasMany
@@ -67,28 +72,43 @@ class Customer extends Model
         return max(0, $this->outstandingBalance() - (int) $this->deposit_balance);
     }
 
-    /** Tambah / catat mutasi titip uang pelanggan. */
-    public function addDeposit(int $amount, string $type, ?string $notes = null, string $source = 'warehouse', ?int $receivableId = null, ?int $userId = null): \App\Modules\Warehouse\Models\CustomerDeposit
+    /**
+     * Catat mutasi titip uang. Baris pelanggan dikunci supaya dua simpanan bersamaan
+     * tidak saling menimpa saldo, dan saldo tidak pernah bisa minus.
+     */
+    public function addDeposit(int $amount, string $type, ?string $notes = null, string $source = 'warehouse', ?int $receivableId = null, ?int $userId = null): CustomerDeposit
     {
-        $current = (int) $this->deposit_balance;
-        $newBalance = match ($type) {
-            'deposit', 'overpayment' => $current + $amount,
-            'withdrawal', 'deduction' => max(0, $current - $amount),
-            default => $current,
+        if ($amount <= 0) {
+            throw ValidationException::withMessages(['amount' => 'Nominal titip uang harus lebih dari Rp0.']);
+        }
+
+        $sign = match ($type) {
+            'deposit', 'overpayment' => 1,
+            'withdrawal', 'deduction' => -1,
+            default => throw new InvalidArgumentException("Jenis titip uang tidak dikenal: {$type}"),
         };
 
-        $this->update(['deposit_balance' => $newBalance]);
+        return DB::transaction(function () use ($amount, $type, $sign, $notes, $source, $receivableId, $userId) {
+            $current = (int) static::query()->whereKey($this->getKey())->lockForUpdate()->value('deposit_balance');
+            $balance = $current + $sign * $amount;
 
-        return $this->deposits()->create([
-            'tenant_id' => $this->tenant_id,
-            'type' => $type,
-            'amount' => $amount,
-            'balance_after' => $newBalance,
-            'notes' => $notes,
-            'source' => $source,
-            'receivable_id' => $receivableId,
-            'created_by' => $userId,
-        ]);
+            if ($balance < 0) {
+                throw ValidationException::withMessages(['amount' => 'Saldo titip uang tidak cukup (sisa '.Rupiah::format($current).').']);
+            }
+
+            $this->forceFill(['deposit_balance' => $balance])->save();
+
+            return $this->deposits()->create([
+                'tenant_id' => $this->tenant_id,
+                'type' => $type,
+                'amount' => $amount,
+                'balance_after' => $balance,
+                'notes' => $notes,
+                'source' => $source,
+                'receivable_id' => $receivableId,
+                'created_by' => $userId,
+            ]);
+        });
     }
 
     public function sales(): HasMany

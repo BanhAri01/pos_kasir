@@ -112,12 +112,11 @@ class MidtransGateway implements PaymentGateway
         };
     }
 
-    public function createDirectQris(string $orderId, int $amount, ?string $notificationUrl = null): array
+    /** QRIS dinamis lewat Core API. @return array{order_id:string, gross_amount:int, qr_string:string, status:string} */
+    public function createDirectQris(string $orderId, int $amount): array
     {
-        $headers = $notificationUrl ? ['X-Override-Notification' => $notificationUrl] : [];
-
         try {
-            $response = $this->client($this->coreUrl())->withHeaders($headers)->post('/v2/charge', [
+            $response = $this->client($this->coreUrl())->post('/v2/charge', [
                 'payment_type' => 'qris',
                 'transaction_details' => [
                     'order_id' => $orderId,
@@ -137,25 +136,16 @@ class MidtransGateway implements PaymentGateway
                 ?? implode(', ', (array) $response->json('error_messages', [(string) $response->status()]));
 
             if ($statusCode === '402' || str_contains(strtolower((string) $msg), 'not activated')) {
-                throw new RuntimeException('Metode QRIS di akun Midtrans Anda belum aktif (status "Activation in progress"). Silakan cek menu Payment Methods di dashboard Midtrans atau gunakan mode Sandbox/Fake untuk testing.');
+                throw new RuntimeException('QRIS di akun Midtrans usaha ini belum aktif. Cek menu Payment Methods di dashboard Midtrans.');
             }
 
             throw new RuntimeException("Midtrans menolak pembuatan QRIS: {$msg} (kode: {$statusCode})");
-        }
-
-        $qrUrl = null;
-        foreach ((array) $response->json('actions', []) as $action) {
-            if (($action['name'] ?? '') === 'generate-qr-code') {
-                $qrUrl = $action['url'] ?? null;
-                break;
-            }
         }
 
         return [
             'order_id' => $orderId,
             'gross_amount' => $amount,
             'qr_string' => (string) $response->json('qr_string'),
-            'qr_url' => $qrUrl,
             'status' => (string) $response->json('transaction_status', 'pending'),
         ];
     }
@@ -179,7 +169,6 @@ class MidtransGateway implements PaymentGateway
         }
 
         return $client;
-
     }
 
     private function snapUrl(): string

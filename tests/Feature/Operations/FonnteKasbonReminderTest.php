@@ -113,7 +113,7 @@ describe('uji sistem pesan otomatis fonnte jatuh tempo kasbon', function () {
                 'due_date' => '2026-10-13',
             ]);
 
-            $this->customer->update(['deposit_balance' => 50000]);
+            $this->customer->forceFill(['deposit_balance' => 50000])->save();
         });
 
         Carbon::setTestNow(wibTest('2026-10-13 10:00:00'));

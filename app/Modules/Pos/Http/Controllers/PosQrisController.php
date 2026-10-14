@@ -4,252 +4,122 @@ namespace App\Modules\Pos\Http\Controllers;
 
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
-use App\Models\Tenant;
+use App\Modules\Billing\Payments\FakeGateway;
 use App\Modules\Billing\Payments\Gateways;
 use App\Modules\Billing\Payments\MidtransGateway;
-use App\Modules\Billing\Services\WalletService;
-use App\Modules\Pos\Models\PaymentMethod;
-use App\Modules\Pos\Models\Sale;
-use App\Modules\Pos\Models\SalePayment;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
+/**
+ * QRIS dinamis di kasir. Uang selalu masuk ke akun Midtrans milik usaha itu sendiri,
+ * tidak pernah lewat akun platform. Status dicek langsung ke Midtrans (server ke server).
+ */
 class PosQrisController extends Controller
 {
-    /**
-     * Kasir membuat QRIS dinamis untuk transaksi saat ini.
-     */
+    private const TTL_MINUTES = 30;
+
     public function generate(Request $request, TenantContext $context, Gateways $gateways): JsonResponse
     {
         $data = $request->validate([
-            'amount' => ['required', 'integer', 'min:1000'],
-            'sale_uuid' => ['nullable', 'string', 'max:64'],
+            'amount' => ['required', 'integer', 'min:1000', 'max:100000000'],
         ]);
 
         $tenant = $context->get();
         $gateway = $gateways->forTenant($tenant);
+        $amount = (int) $data['amount'];
+        $orderId = 'POS-'.$tenant->id.'-'.Str::lower(Str::random(20));
 
-        if (! $gateway) {
+        if ($gateway instanceof FakeGateway) {
+            $qrString = 'HERMES-FAKE-QRIS|'.$orderId.'|'.$amount;
+        } elseif ($gateway instanceof MidtransGateway) {
+            try {
+                $qrString = $gateway->createDirectQris($orderId, $amount)['qr_string'];
+            } catch (Throwable $e) {
+                Log::warning('Gagal membuat QRIS kasir: '.$e->getMessage(), ['tenant' => $tenant->id]);
+
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+        } else {
             return response()->json([
-                'message' => 'Layanan QRIS otomatis belum aktif. Hubungi admin.',
+                'message' => 'QRIS otomatis belum aktif. Pemilik perlu mengisi kunci Midtrans milik usaha di Pengaturan > Pembayaran Online. Sementara itu pakai QRIS cetak toko dan cek uang masuk di HP.',
             ], 422);
         }
 
-        $saleUuid = ! empty($data['sale_uuid']) ? $data['sale_uuid'] : (string) Str::uuid();
-        $timestamp = now()->format('ymdHis');
-        $orderId = "POS-{$tenant->id}-{$saleUuid}-{$timestamp}";
-
-        // Simpan metadata order di cache untuk pencocokan cepat
-        Cache::put("pos_qris:{$orderId}", [
-            'tenant_id' => $tenant->id,
-            'sale_uuid' => $saleUuid,
-            'amount' => $data['amount'],
-            'status' => 'pending',
-        ], now()->addHours(2));
-
-        if ($gateway instanceof MidtransGateway) {
-            try {
-                $webhookUrl = route('pos.qris.webhook');
-                $result = $gateway->createDirectQris($orderId, $data['amount'], $webhookUrl);
-
-                $qrUrl = $result['qr_url'] ?? null;
-                $qrString = $result['qr_string'] ?? null;
-
-                if (empty($qrUrl) && ! empty($qrString)) {
-                    $qrUrl = $this->generateQrSvgDataUri($qrString);
-                }
-
-                return response()->json([
-                    'order_id' => $orderId,
-                    'amount' => $data['amount'],
-                    'qr_string' => $qrString,
-                    'qr_url' => $qrUrl,
-                    'status' => 'pending',
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('Gagal membuat QRIS Midtrans POS: '.$e->getMessage(), ['order_id' => $orderId]);
-
-                return response()->json([
-                    'message' => $e->getMessage(),
-                ], 422);
-            }
+        if ($qrString === '') {
+            return response()->json(['message' => 'Midtrans tidak mengirim kode QRIS. Coba lagi.'], 422);
         }
 
-        // Mode Fake / Testing
-        $mockQrString = "00020101021226590014ID.LINKAJA.WWW011893600911002239472302150000{$orderId}520454995303360540{$data['amount']}5802ID5911HERMES_POS6007JAKARTA6304";
+        Cache::put($this->key($orderId), ['tenant_id' => $tenant->id, 'amount' => $amount, 'status' => 'pending'], now()->addMinutes(self::TTL_MINUTES));
+
         return response()->json([
             'order_id' => $orderId,
-            'amount' => $data['amount'],
-            'qr_string' => $mockQrString,
-            'qr_url' => $this->generateQrSvgDataUri($mockQrString),
+            'amount' => $amount,
+            'qr_url' => $this->qrSvg($qrString),
             'status' => 'pending',
-            'is_mock' => true,
+            'is_mock' => $gateway instanceof FakeGateway,
         ]);
     }
 
-    /**
-     * Simulasi pembayaran berhasil (khusus mode testing / pengujian lokal).
-     */
-    public function simulate(Request $request, string $orderId, TenantContext $context, WalletService $wallets): JsonResponse
+    public function check(string $orderId, TenantContext $context, Gateways $gateways): JsonResponse
     {
-        $cached = Cache::get("pos_qris:{$orderId}");
-        if (! $cached) {
-            return response()->json(['message' => 'Transaksi QRIS tidak ditemukan atau telah kedaluwarsa.'], 404);
+        $tenant = $context->get();
+        $cached = $this->owned($orderId, $tenant->id);
+
+        if ($cached['status'] === 'paid') {
+            return response()->json(['status' => 'paid', 'order_id' => $orderId]);
         }
 
-        $tenant = $context->get();
-        $this->markOrderPaid($orderId, $cached, $tenant, (int) ($cached['amount'] ?? 0), $wallets);
+        $result = $gateways->forTenant($tenant)?->fetchStatus($orderId);
+        $status = $result?->status ?? 'pending';
+
+        if ($status === 'paid' && (int) $result->amount !== (int) $cached['amount']) {
+            Log::warning('Nominal QRIS kasir tidak cocok', ['order' => $orderId, 'expected' => $cached['amount'], 'got' => $result->amount]);
+            $status = 'pending';
+        }
+
+        if ($status !== 'pending') {
+            Cache::put($this->key($orderId), [...$cached, 'status' => $status], now()->addMinutes(self::TTL_MINUTES));
+        }
+
+        return response()->json(['status' => $status, 'order_id' => $orderId]);
+    }
+
+    /** Hanya untuk uji lokal dengan driver pembayaran palsu; di production selalu 404. */
+    public function simulate(string $orderId, TenantContext $context, Gateways $gateways): JsonResponse
+    {
+        abort_unless($gateways->fakeAllowed(), 404);
+
+        $cached = $this->owned($orderId, $context->id());
+        Cache::put($this->key($orderId), [...$cached, 'status' => 'paid'], now()->addMinutes(self::TTL_MINUTES));
 
         return response()->json(['status' => 'paid', 'order_id' => $orderId]);
     }
 
-    /**
-     * Konversi string QRIS EMVCo menjadi gambar SVG Data URI scannable.
-     */
-    private function generateQrSvgDataUri(string $content): string
+    private function owned(string $orderId, int $tenantId): array
     {
-        try {
-            $renderer = new \BaconQrCode\Renderer\ImageRenderer(
-                new \BaconQrCode\Renderer\RendererStyle\RendererStyle(280),
-                new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
-            );
-            $writer = new \BaconQrCode\Writer($renderer);
-            $svg = $writer->writeString($content);
+        $cached = Cache::get($this->key($orderId));
+        abort_if(! is_array($cached) || (int) $cached['tenant_id'] !== $tenantId, 404);
 
-            return 'data:image/svg+xml;utf8,'.rawurlencode($svg);
-        } catch (\Throwable) {
-            return '';
-        }
+        return $cached;
     }
 
-
-    /**
-     * Kasir mengecek status pembayaran QRIS (polling otomatis tiap beberapa detik).
-     */
-    public function check(Request $request, string $orderId, TenantContext $context, Gateways $gateways, WalletService $wallets): JsonResponse
+    private function key(string $orderId): string
     {
-        $cached = Cache::get("pos_qris:{$orderId}");
-        if ($cached && ($cached['status'] ?? '') === 'paid') {
-            return response()->json(['status' => 'paid', 'order_id' => $orderId]);
-        }
-
-        $tenant = $context->get();
-        $gateway = $gateways->forTenant($tenant);
-
-        if ($gateway) {
-            $result = $gateway->fetchStatus($orderId);
-            if ($result && $result->status === 'paid') {
-                $this->markOrderPaid($orderId, $cached, $tenant, $result->amount ?? ($cached['amount'] ?? 0), $wallets);
-
-                return response()->json(['status' => 'paid', 'order_id' => $orderId]);
-            }
-        }
-
-        return response()->json([
-            'status' => $cached['status'] ?? 'pending',
-            'order_id' => $orderId,
-        ]);
+        return 'pos_qris:'.$orderId;
     }
 
-    /**
-     * Webhook notifikasi pembayaran dari Midtrans.
-     */
-    public function webhook(Request $request, Gateways $gateways, WalletService $wallets): JsonResponse
+    private function qrSvg(string $content): string
     {
-        $payload = $request->all();
-        $orderId = (string) ($payload['order_id'] ?? '');
+        $svg = (new Writer(new ImageRenderer(new RendererStyle(280, 1), new SvgImageBackEnd)))->writeString($content);
 
-        if (! str_starts_with($orderId, 'POS-')) {
-            return response()->json(['message' => 'ignored'], 200);
-        }
-
-        // Format order_id: POS-{tenant_id}-{sale_uuid}-{timestamp}
-        $parts = explode('-', $orderId);
-        $tenantId = (int) ($parts[1] ?? 0);
-        $tenant = Tenant::find($tenantId);
-
-        if (! $tenant) {
-            return response()->json(['message' => 'tenant not found'], 404);
-        }
-
-        $gateway = $gateways->forTenant($tenant);
-        if (! $gateway) {
-            return response()->json(['message' => 'no gateway configured'], 400);
-        }
-
-        $result = $gateway->parseNotification($payload);
-        if (! $result) {
-            return response()->json(['message' => 'invalid signature'], 403);
-        }
-
-        $cached = Cache::get("pos_qris:{$orderId}");
-        $grossAmount = $result->amount ?? ($cached['amount'] ?? (int) round((float) ($payload['gross_amount'] ?? 0)));
-
-        if ($result->status === 'paid') {
-            $this->markOrderPaid($orderId, $cached, $tenant, $grossAmount, $wallets);
-
-            return response()->json(['message' => 'ok', 'status' => 'paid']);
-        }
-
-        if (in_array($result->status, ['failed', 'expired'], true)) {
-            if ($cached) {
-                Cache::put("pos_qris:{$orderId}", array_merge($cached, ['status' => $result->status]), now()->addHours(2));
-            }
-        }
-
-        return response()->json(['message' => 'ok', 'status' => $result->status]);
-    }
-
-    /**
-     * Tandai pesanan QRIS lunas, tambahkan saldo ke dompet toko, dan update data kasir jika ada.
-     */
-    private function markOrderPaid(string $orderId, ?array $cached, Tenant $tenant, int $amount, WalletService $wallets): void
-    {
-        // Cegah dobel kredit dompet (idempotent)
-        $lockKey = "pos_qris_credited:{$orderId}";
-        if (! Cache::add($lockKey, 1, now()->addDays(7))) {
-            return;
-        }
-
-        // 1. Masukkan dana ke Dompet Toko
-        $wallets->creditQris(
-            tenant: $tenant,
-            grossAmount: $amount,
-            reference: $orderId,
-            description: "Pembayaran QRIS Kasir ({$orderId})",
-            meta: ['order_id' => $orderId, 'sale_uuid' => $cached['sale_uuid'] ?? null]
-        );
-
-        // 2. Update status di cache
-        if ($cached) {
-            Cache::put("pos_qris:{$orderId}", array_merge($cached, ['status' => 'paid']), now()->addHours(2));
-        }
-
-        // 3. Jika Sale sudah ada di DB berdasarkan sale_uuid, pastikan pembayaran tercatat
-        if (! empty($cached['sale_uuid'])) {
-            $sale = Sale::withoutGlobalScopes()->where('uuid', $cached['sale_uuid'])->first();
-            if ($sale) {
-                $method = PaymentMethod::withoutGlobalScopes()
-                    ->where('tenant_id', $tenant->id)
-                    ->where('type', 'qris')
-                    ->first();
-
-                SalePayment::firstOrCreate(
-                    ['sale_id' => $sale->id, 'reference' => $orderId],
-                    [
-                        'uuid' => (string) Str::uuid(),
-                        'tenant_id' => $tenant->id,
-                        'payment_method_id' => $method?->id,
-                        'method_type' => 'qris',
-                        'method_name' => 'QRIS (HermesPay)',
-                        'amount' => $amount,
-                        'paid_at' => now(),
-                    ]
-                );
-            }
-        }
+        return 'data:image/svg+xml;utf8,'.rawurlencode($svg);
     }
 }

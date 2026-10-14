@@ -122,10 +122,10 @@ const faqJsonLd = computed(() => ({
 
 <template>
     <Head>
-        <title>Hermes POS - Aplikasi Kasir POS & Manajemen Gudang Terbaik</title>
-        <meta name="description" content="Aplikasi kasir (POS) dan manajemen gudang multi-usaha terbaik di Indonesia. Cocok untuk toko ritel, gudang & distributor pakan, F&B, dan jasa. Bisa jualan offline, struk WhatsApp, titip uang deposit, dan stok timbangan otomatis." />
-        <meta name="keywords" content="aplikasi kasir, aplikasi pos kasir, aplikasi gudang, pos gudang, aplikasi kasir terbaik, gudang pakan, kasir toko kelontong, software kasir umkm, aplikasi kasbon, kasir offline, titip uang deposit, hermes pos" />
-        <meta property="og:title" content="Hermes POS - Aplikasi Kasir POS & Manajemen Gudang Terbaik" />
+        <title>Hermes POS - Aplikasi Kasir & Gudang untuk UMKM</title>
+        <meta name="description" content="Aplikasi kasir (POS) dan manajemen gudang untuk UMKM Indonesia. Cocok untuk toko ritel, gudang & distributor pakan, F&B, dan jasa. Bisa jualan offline, struk WhatsApp, titip uang deposit, dan stok timbangan otomatis." />
+        <meta name="keywords" content="aplikasi kasir, aplikasi pos kasir, aplikasi gudang, pos gudang, gudang pakan, kasir toko kelontong, software kasir umkm, aplikasi kasbon, kasir offline, titip uang deposit, hermes pos" />
+        <meta property="og:title" content="Hermes POS - Aplikasi Kasir & Gudang untuk UMKM" />
         <meta property="og:description" content="Kasir cepat, kabar sampai. Jualan offline, struk & tagihan WhatsApp, titip uang deposit, dan manajemen gudang/toko lengkap." />
         <component :is="'script'" type="application/ld+json">{{ JSON.stringify(faqJsonLd) }}</component>
     </Head>
@@ -289,8 +289,8 @@ const faqJsonLd = computed(() => ({
         <!-- SEKSI CTA -->
         <section class="bg-brand px-4 py-14 text-center text-white">
             <BellRing :size="36" class="mx-auto text-accent" aria-hidden="true" />
-            <h2 class="mt-3 font-display text-3xl font-extrabold">Siap kelola peternakan & kasir lebih rapi?</h2>
-            <p class="mx-auto mt-2 max-w-lg text-lg text-white/80">Bergabung dengan ribuan UMKM dan peternak di seluruh Indonesia hari ini.</p>
+            <h2 class="mt-3 font-display text-3xl font-extrabold">Siap kelola toko & gudang lebih rapi?</h2>
+            <p class="mx-auto mt-2 max-w-lg text-lg text-white/80">Coba gratis dulu, tanpa kartu kredit. Kalau cocok, baru langganan.</p>
             <div class="mx-auto mt-6 flex max-w-md flex-col gap-3 sm:flex-row">
                 <Link :href="route('register')" class="pressable flex min-h-touch-lg flex-1 items-center justify-center rounded-2xl bg-accent px-6 text-xl font-extrabold text-ink">Coba Gratis</Link>
                 <a :href="waUrl" target="_blank" rel="noopener" class="pressable flex min-h-touch-lg flex-1 items-center justify-center rounded-2xl border-2 border-white/30 px-6 text-xl font-bold">Tanya Admin</a>

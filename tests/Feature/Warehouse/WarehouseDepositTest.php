@@ -156,6 +156,23 @@ describe('fitur titip uang dan tagihan wa di modul gudang', function () {
         $this->joko->refresh();
         expect($this->joko->deposit_balance)->toBe(50_000);
         expect($this->joko->outstandingBalance())->toBe(200_000);
+        expect(\App\Modules\Operations\Models\ReceivablePayment::withoutGlobalScopes()->sole())
+            ->method_type->toBe('deposit')
+            ->payment_method_id->toBeNull();
+    });
+
+    it('saldo titip uang tidak bisa diisi lewat form pelanggan dan tidak bisa minus', function () {
+        expect(fn () => $this->joko->update(['deposit_balance' => 9_999_999]))
+            ->toThrow(\Illuminate\Database\Eloquent\MassAssignmentException::class);
+        expect($this->joko->fresh()->deposit_balance)->toBe(0);
+
+        asTenant($this->owner->tenant, function () {
+            $this->joko->addDeposit(10_000, 'deposit', 'Titip', 'warehouse');
+            expect(fn () => $this->joko->addDeposit(20_000, 'withdrawal', 'Tarik', 'warehouse'))
+                ->toThrow(\Illuminate\Validation\ValidationException::class);
+        });
+
+        expect($this->joko->fresh()->deposit_balance)->toBe(10_000);
     });
 
     it('menghasilkan tautan wa.me dan pesan tagihan dengan potongan titip uang dan sisa bersih', function () {

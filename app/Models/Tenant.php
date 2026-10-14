@@ -68,20 +68,6 @@ class Tenant extends Model
         return $this->hasMany(Outlet::class);
     }
 
-    public function wallet(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(\App\Modules\Billing\Models\TenantWallet::class)->withoutGlobalScopes();
-    }
-
-    public function getOrCreateWallet(): \App\Modules\Billing\Models\TenantWallet
-    {
-        return $this->wallet()->firstOrCreate([], [
-            'balance' => 0,
-            'total_qris_income' => 0,
-            'pending_withdrawal' => 0,
-        ]);
-    }
-
     public function modules(): BelongsToMany
     {
         return $this->belongsToMany(Module::class, 'tenant_modules')

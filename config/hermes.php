@@ -91,7 +91,7 @@ return [
     ],
 
     'payment' => [
-        'driver' => env('HERMES_PAYMENT_DRIVER', env('PAYMENT_DRIVER', 'midtrans')),
+        'driver' => env('HERMES_PAYMENT_DRIVER', env('PAYMENT_DRIVER')),
         'expiry_minutes' => (int) env('HERMES_PAYMENT_EXPIRY_MINUTES', 60),
 
         'midtrans' => [

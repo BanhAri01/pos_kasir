@@ -16,3 +16,18 @@ Route::get('/', function () {
         'trialDays' => (int) config('hermes.trial_days'),
     ]);
 })->name('home');
+
+Route::get('robots.txt', fn () => response(implode("\n", [
+    'User-agent: *',
+    'Allow: /$',
+    'Allow: /daftar',
+    'Allow: /masuk',
+    'Disallow: /',
+    '',
+    'Sitemap: '.url('sitemap.xml'),
+    '',
+]), 200, ['Content-Type' => 'text/plain; charset=UTF-8']))->name('robots');
+
+Route::get('sitemap.xml', fn () => response(view('sitemap', [
+    'urls' => [url('/'), route('register'), route('login')],
+])->render(), 200, ['Content-Type' => 'application/xml; charset=UTF-8']))->name('sitemap');

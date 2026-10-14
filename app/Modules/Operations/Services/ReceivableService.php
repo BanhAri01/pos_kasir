@@ -35,8 +35,9 @@ class ReceivableService
     /**
      * Terima pembayaran utang pelanggan. Dibagikan ke utang yang paling lama dulu.
      * Idempotent dengan uuid (aman dikirim ulang dari kasir offline).
+     * Kelebihan bayar masuk titip uang. $fromDeposit = dibayar dari titip uang (bukan uang baru masuk).
      */
-    public function pay(Customer $customer, int $amount, ?int $paymentMethodId, User $user, ?int $shiftId = null, ?string $uuid = null): int
+    public function pay(Customer $customer, int $amount, ?int $paymentMethodId, User $user, ?int $shiftId = null, ?string $uuid = null, bool $fromDeposit = false): int
     {
         $uuid ??= (string) Str::uuid();
 
@@ -44,22 +45,27 @@ class ReceivableService
             return 0;
         }
 
-        return DB::transaction(function () use ($customer, $amount, $paymentMethodId, $user, $shiftId, $uuid) {
+        return DB::transaction(function () use ($customer, $amount, $paymentMethodId, $user, $shiftId, $uuid, $fromDeposit) {
             $open = Receivable::query()->where('customer_id', $customer->id)->where('status', 'open')
                 ->orderBy('created_at')->orderBy('id')->lockForUpdate()->get();
 
             $balance = (int) $open->sum(fn ($r) => $r->amount - $r->paid_amount);
             if ($balance <= 0) {
-                $customer->addDeposit($amount, 'deposit', 'Titip uang pelanggan', 'kasbon', null, $user->id);
-                activity('kasbon')->performedOn($customer)->causedBy($user)->log("Terima titip uang {$customer->name}: ".Rupiah::format($amount));
-                return 0;
+                throw ValidationException::withMessages(['amount' => "{$customer->name} tidak punya utang. Uang titipan dicatat di menu Titip Uang."]);
+            }
+            if ($fromDeposit && $amount > $balance) {
+                throw ValidationException::withMessages(['amount' => 'Potongan titip uang melebihi utang. Sisa utang '.Rupiah::format($balance).'.']);
             }
 
             $overpayment = max(0, $amount - $balance);
-            $amountToDistribute = min($amount, $balance);
 
-            $method = $paymentMethodId ? PaymentMethod::query()->find($paymentMethodId) : PaymentMethod::query()->where('type', 'cash')->first();
-            $remaining = $amountToDistribute;
+            $method = match (true) {
+                $fromDeposit => null,
+                (bool) $paymentMethodId => PaymentMethod::query()->find($paymentMethodId),
+                default => PaymentMethod::query()->where('type', 'cash')->first(),
+            };
+            $methodType = $fromDeposit ? 'deposit' : ($method?->type ?? 'cash');
+            $remaining = min($amount, $balance);
             $first = true;
 
             foreach ($open as $receivable) {
@@ -73,7 +79,7 @@ class ReceivableService
                     'uuid' => $first ? $uuid : (string) Str::uuid(),
                     'amount' => $portion,
                     'payment_method_id' => $method?->id,
-                    'method_type' => $method?->type ?? 'cash',
+                    'method_type' => $methodType,
                     'shift_id' => $shiftId,
                     'user_id' => $user->id,
                     'paid_at' => now(),

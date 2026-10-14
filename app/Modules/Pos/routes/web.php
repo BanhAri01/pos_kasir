@@ -11,12 +11,6 @@ use App\Modules\Pos\Http\Controllers\SalesController;
 use App\Modules\Pos\Http\Controllers\ShiftHistoryController;
 use Illuminate\Support\Facades\Route;
 
-// Webhook notifikasi pembayaran QRIS kasir dari Midtrans
-Route::post('webhook/pos/qris', [PosQrisController::class, 'webhook'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class])
-    ->middleware('throttle:120,1')
-    ->name('pos.qris.webhook');
-
 // Struk digital publik (link WhatsApp), dilindungi tanda tangan URL.
 Route::get('struk/{uuid}', [ReceiptController::class, 'show'])->middleware('signed')->name('receipt.show');
 
@@ -53,9 +47,8 @@ Route::middleware(['auth', 'tenant', 'can:use_pos'])->group(function () {
         Route::get('customers', [PosCustomerController::class, 'index'])->name('customers.index');
         Route::post('customers', [PosCustomerController::class, 'store'])->name('customers.store');
 
-        Route::post('qris/generate', [PosQrisController::class, 'generate'])->name('qris.generate');
+        Route::post('qris/generate', [PosQrisController::class, 'generate'])->middleware('throttle:20,1')->name('qris.generate');
         Route::get('qris/check/{orderId}', [PosQrisController::class, 'check'])->name('qris.check');
         Route::post('qris/simulate/{orderId}', [PosQrisController::class, 'simulate'])->name('qris.simulate');
     });
 });
-

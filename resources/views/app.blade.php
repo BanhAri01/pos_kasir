@@ -2,8 +2,9 @@
     // Diterapkan langsung dari server supaya tidak ada "kedipan" tema/ukuran saat halaman dibuka.
     $prefs = auth()->user()?->preferences ?? [];
     $appName = config('app.name', 'Hermes POS');
-    $appUrl = url('/');
-    $appDescription = 'Aplikasi kasir (POS) dan manajemen gudang multi-usaha terbaik di Indonesia. Cocok untuk toko ritel, gudang & distributor pakan, F&B, dan jasa. Bisa jualan offline, struk WhatsApp, titip uang deposit, dan stok timbangan otomatis.';
+    // Hanya halaman publik yang boleh masuk Google; tagihan, pesanan, dan aplikasi selalu noindex.
+    $indexable = request()->routeIs('home', 'register', 'login');
+    $appDescription = 'Aplikasi kasir (POS) dan manajemen gudang untuk UMKM Indonesia: toko ritel, grosir & distributor, F&B, dan jasa. Bisa jualan offline, struk & tagihan WhatsApp, kasbon, dan stok timbangan.';
 @endphp
 <!DOCTYPE html>
 <html lang="id" data-theme="{{ $prefs['theme'] ?? 'system' }}" data-size="{{ $prefs['display_size'] ?? 'normal' }}">
@@ -11,32 +12,20 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         <meta name="description" content="{{ $appDescription }}">
-        <meta name="keywords" content="aplikasi kasir, aplikasi pos kasir, aplikasi gudang, pos gudang, aplikasi kasir terbaik, gudang pakan, kasir toko kelontong, software kasir umkm, aplikasi kasbon, kasir offline, titip uang deposit, hermes pos">
-        <meta name="author" content="Hermes POS Indonesia">
-        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-        <link rel="canonical" href="{{ url()->current() }}">
-
-        {{-- Geo & Bahasa --}}
-        <meta name="geo.region" content="ID">
-        <meta name="geo.placename" content="Indonesia">
-        <meta name="language" content="Indonesian">
-
-        {{-- Open Graph / Facebook --}}
-        <meta property="og:type" content="website">
-        <meta property="og:site_name" content="{{ $appName }}">
-        <meta property="og:title" content="{{ $appName }} - Aplikasi Kasir POS & Manajemen Gudang Terbaik">
-        <meta property="og:description" content="{{ $appDescription }}">
-        <meta property="og:url" content="{{ $appUrl }}">
-        <meta property="og:locale" content="id_ID">
-        <meta property="og:image" content="{{ asset('favicon.svg') }}">
-
-        {{-- Twitter Card --}}
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="{{ $appName }} - Aplikasi Kasir POS & Manajemen Gudang Terbaik">
-        <meta name="twitter:description" content="{{ $appDescription }}">
-        <meta name="twitter:image" content="{{ asset('favicon.svg') }}">
-
-        {{-- Tema & PWA --}}
+        @if ($indexable)
+            <meta name="robots" content="index, follow, max-image-preview:large">
+            <link rel="canonical" href="{{ url()->current() }}">
+            <meta property="og:type" content="website">
+            <meta property="og:site_name" content="{{ $appName }}">
+            <meta property="og:title" content="{{ $appName }} - Aplikasi Kasir & Gudang untuk UMKM">
+            <meta property="og:description" content="{{ $appDescription }}">
+            <meta property="og:url" content="{{ url('/') }}">
+            <meta property="og:locale" content="id_ID">
+            <meta property="og:image" content="{{ asset('icons/apple-touch-icon.png') }}">
+            <meta name="twitter:card" content="summary">
+        @else
+            <meta name="robots" content="noindex, nofollow">
+        @endif
         <meta name="theme-color" content="#1f2937" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)">
 
@@ -52,43 +41,38 @@
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
         <link rel="manifest" href="/manifest.webmanifest">
 
-        <title inertia>{{ $appName }} - Aplikasi Kasir POS & Manajemen Gudang Terbaik</title>
+        <title inertia>{{ $appName }}</title>
 
-        {{-- Structured Data (Schema.org) untuk Mesin Pencari Google --}}
-        <script type="application/ld+json">
-        {!! json_encode([
-            '@context' => 'https://schema.org',
-            '@graph' => [
-                [
-                    '@type' => 'SoftwareApplication',
-                    'name' => $appName,
-                    'applicationCategory' => 'BusinessApplication',
-                    'operatingSystem' => 'All (Web, Android, iOS, Windows, macOS)',
-                    'description' => $appDescription,
-                    'url' => $appUrl,
-                    'offers' => [
-                        '@type' => 'Offer',
-                        'price' => '0',
-                        'priceCurrency' => 'IDR',
-                        'description' => 'Coba gratis 14 hari tanpa kartu kredit',
+        @if (request()->routeIs('home'))
+            {{-- Data terstruktur hanya berisi fakta: tanpa rating/ulasan sampai ada ulasan asli dari pelanggan. --}}
+            <script type="application/ld+json">
+            {!! json_encode([
+                '@context' => 'https://schema.org',
+                '@graph' => [
+                    [
+                        '@type' => 'SoftwareApplication',
+                        'name' => $appName,
+                        'applicationCategory' => 'BusinessApplication',
+                        'operatingSystem' => 'Web, Android, iOS, Windows',
+                        'description' => $appDescription,
+                        'url' => url('/'),
+                        'offers' => [
+                            '@type' => 'AggregateOffer',
+                            'priceCurrency' => 'IDR',
+                            'lowPrice' => (string) collect(config('hermes.plans'))->min('price'),
+                            'highPrice' => (string) collect(config('hermes.plans'))->max('price'),
+                        ],
                     ],
-                    'aggregateRating' => [
-                        '@type' => 'AggregateRating',
-                        'ratingValue' => '4.9',
-                        'reviewCount' => '1250',
-                        'bestRating' => '5',
-                        'worstRating' => '1',
+                    [
+                        '@type' => 'Organization',
+                        'name' => $appName,
+                        'url' => url('/'),
+                        'logo' => asset('icons/apple-touch-icon.png'),
                     ],
                 ],
-                [
-                    '@type' => 'Organization',
-                    'name' => $appName,
-                    'url' => $appUrl,
-                    'logo' => asset('favicon.svg'),
-                ],
-            ],
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}
-        </script>
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+            </script>
+        @endif
 
         @routes
         @vite(['resources/css/app.css', 'resources/js/app.js'])
