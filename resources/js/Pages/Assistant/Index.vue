@@ -3,8 +3,8 @@
  * Asisten Toko: tanya data usaha dengan bahasa sehari-hari, lewat aplikasi atau WhatsApp.
  * Asisten hanya membaca data; pulsa ditampilkan dalam persen supaya mudah dipahami.
  */
-import { nextTick, onMounted, ref } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { nextTick, onMounted, reactive, ref } from 'vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { BatteryMedium, Bot, Lock, MessageCircle, Send, Sparkles, Trash2, UserRound } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
@@ -34,6 +34,9 @@ const error = ref('');
 const list = ref(null);
 
 const phoneForm = useForm({ phone: '', label: '' });
+const resendForm = useForm({ phone: '', label: '' });
+const codes = reactive({});
+const page = usePage();
 
 function scrollDown() {
     nextTick(() => {
@@ -69,6 +72,19 @@ async function ask(text = question.value) {
 
 function addPhone() {
     phoneForm.post(route('assistant.phones.store'), { preserveScroll: true, onSuccess: () => phoneForm.reset() });
+}
+
+function verifyPhone(phone) {
+    router.post(route('assistant.phones.verify', phone.id), { code: codes[phone.id] ?? '' }, {
+        preserveScroll: true,
+        onSuccess: () => delete codes[phone.id],
+    });
+}
+
+function resendCode(phone) {
+    resendForm.phone = phone.raw;
+    resendForm.label = phone.label ?? '';
+    resendForm.post(route('assistant.phones.store'), { preserveScroll: true });
 }
 
 function removePhone(phone) {
@@ -143,14 +159,27 @@ function format(text) {
 
         <section v-if="canManagePhones" class="card mt-6 p-4">
             <h2 class="flex items-center gap-2 text-xl font-bold text-ink"><MessageCircle :size="22" aria-hidden="true" /> Tanya lewat WhatsApp</h2>
-            <p class="mt-1 text-lg text-ink-soft">Daftarkan nomor pemilik (maksimal {{ maxPhones }}). Nomor ini bisa mengirim pertanyaan ke nomor WhatsApp Asisten Hermes POS.</p>
+            <p class="mt-1 text-lg text-ink-soft">Daftarkan nomor pemilik (maksimal {{ maxPhones }}). Kami kirim kode ke WhatsApp nomor itu untuk memastikan nomornya benar milik Anda.</p>
 
             <ul v-if="phones.length" class="mt-3 divide-y divide-line">
-                <li v-for="p in phones" :key="p.id" class="flex min-h-14 items-center justify-between gap-3">
-                    <span class="text-lg text-ink">{{ p.phone }} <span v-if="p.label" class="text-ink-soft">· {{ p.label }}</span></span>
-                    <button type="button" class="pressable flex min-h-12 items-center gap-1 rounded-xl px-3 text-base font-bold text-danger hover:bg-danger/10" @click="removePhone(p)">
-                        <Trash2 :size="18" aria-hidden="true" /> Lepas
-                    </button>
+                <li v-for="p in phones" :key="p.id" class="py-3">
+                    <div class="flex min-h-12 items-center justify-between gap-3">
+                        <span class="text-lg text-ink">
+                            {{ p.phone }} <span v-if="p.label" class="text-ink-soft">· {{ p.label }}</span>
+                            <span v-if="p.status === 'pending'" class="ml-1 rounded-lg bg-warn-soft px-2 py-0.5 text-sm font-bold text-warn-ink">Menunggu kode</span>
+                            <span v-else-if="p.status === 'inactive'" class="ml-1 rounded-lg bg-danger-soft px-2 py-0.5 text-sm font-bold text-danger-ink">Tidak aktif</span>
+                        </span>
+                        <button type="button" class="pressable flex min-h-12 items-center gap-1 rounded-xl px-3 text-base font-bold text-danger hover:bg-danger/10" @click="removePhone(p)">
+                            <Trash2 :size="18" aria-hidden="true" /> Lepas
+                        </button>
+                    </div>
+                    <p v-if="p.status === 'inactive'" class="mt-1 text-base text-ink-soft">Karyawan yang mendaftarkan nomor ini sudah tidak aktif. Lepas lalu daftarkan ulang supaya bisa dipakai lagi.</p>
+                    <form v-if="p.status === 'pending'" class="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end" @submit.prevent="verifyPhone(p)">
+                        <BigInput v-model="codes[p.id]" label="Kode 6 angka dari WhatsApp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" :error="page.props.errors[`code_${p.id}`]" />
+                        <BigButton type="submit">Aktifkan</BigButton>
+                        <BigButton type="button" variant="secondary" :disabled="resendForm.processing" @click="resendCode(p)">Kirim ulang kode</BigButton>
+                        <p v-if="resendForm.errors.phone && resendForm.phone === p.raw" class="text-base text-danger sm:col-span-3">{{ resendForm.errors.phone }}</p>
+                    </form>
                 </li>
             </ul>
 

@@ -21,6 +21,7 @@ use App\Modules\Pos\Services\ShiftService;
 use App\Modules\Pos\Support\SaleRules;
 use App\Modules\Sync\Models\SyncBatch;
 use App\Modules\Sync\Models\SyncConflict;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -42,6 +43,10 @@ use Throwable;
 class SyncService
 {
     public const TYPES = ['shift.open', 'customer.create', 'sale', 'cash', 'kitchen.ticket', 'receivable.payment'];
+
+    private const CLOCK_TOLERANCE_MINUTES = 10;
+
+    private const LATE_SALE_HOURS = 48;
 
     public function __construct(
         private SaleService $sales,
@@ -110,7 +115,11 @@ class SyncService
             'opened_at' => ['nullable', 'date'],
         ]);
 
-        $shift = $this->shifts->open($data['outlet_id'], $user, $data['opening_cash'], $data['uuid'], $device?->id, reuseOpen: false, openedAt: $data['opened_at'] ?? null);
+        $openedAt = filled($data['opened_at'] ?? null) && Carbon::parse($data['opened_at'])->isBefore(now()->addMinutes(self::CLOCK_TOLERANCE_MINUTES))
+            ? $data['opened_at']
+            : null;
+
+        $shift = $this->shifts->open($data['outlet_id'], $user, $data['opening_cash'], $data['uuid'], $device?->id, reuseOpen: false, openedAt: $openedAt);
 
         return ['uuid' => $shift->uuid];
     }
@@ -138,12 +147,18 @@ class SyncService
         // Aturan sama dengan kasir online (diskon tidak ditolak: penjualan sudah terjadi).
         $data = $this->validate($payload, SaleRules::rules($tenantId));
 
+        $claimed = filled($data['created_at'] ?? null) ? Carbon::parse($data['created_at']) : null;
+        if ($claimed?->isAfter(now()->addMinutes(self::CLOCK_TOLERANCE_MINUTES))) {
+            $data['created_at'] = now()->toIso8601String();
+        }
+
         $existed = Sale::query()->where('uuid', $data['uuid'])->exists();
         $sale = $this->sales->record($data, $user, $device?->id, strict: false);
 
         if (! $existed) {
             $this->flagNegativeStock($sale, $device);
             $this->flagPriceChanges($sale, $user, $device);
+            $this->flagSaleDate($sale, $claimed, $user, $device);
         }
 
         return ['uuid' => $sale->uuid, 'number' => $sale->number, 'receipt_url' => $sale->receiptUrl()];
@@ -226,6 +241,31 @@ class SyncService
                 'message' => "Stok {$stock->product?->name} minus ".Qty::display($stock->qty).' setelah penjualan offline (nota '.$sale->number.'). Cek & hitung ulang stoknya.',
                 'payload' => ['product_id' => $stock->product_id, 'qty' => $stock->qty],
             ]));
+    }
+
+    private function flagSaleDate(Sale $sale, ?Carbon $claimed, User $user, ?Device $device): void
+    {
+        $future = $claimed?->isAfter(now()->addMinutes(self::CLOCK_TOLERANCE_MINUTES));
+        $late = $claimed?->isBefore(now()->subHours(self::LATE_SALE_HOURS));
+
+        if (! $future && ! $late) {
+            return;
+        }
+
+        $timezone = $this->context->get()?->timezone ?? 'Asia/Jakarta';
+        $date = $claimed->copy()->timezone($timezone)->locale('id')->translatedFormat('j M Y H:i');
+
+        SyncConflict::create([
+            'device_id' => $device?->id,
+            'outlet_id' => $sale->outlet_id,
+            'type' => 'sale_date',
+            'entity_type' => 'sale',
+            'entity_uuid' => $sale->uuid,
+            'message' => $future
+                ? "Jam di HP kasir {$user->name} tidak benar: nota {$sale->number} bertanggal {$date} (masa depan), dicatat dengan waktu sekarang. Cek pengaturan jam HP-nya."
+                : "Nota {$sale->number} bertanggal {$date} baru dikirim oleh {$user->name} sekarang (lebih dari ".(self::LATE_SALE_HOURS / 24).' hari). Pastikan tanggalnya benar karena laporan hari itu ikut berubah.',
+            'payload' => ['user_id' => $user->id, 'claimed_at' => $claimed->toIso8601String()],
+        ]);
     }
 
     private function flagPriceChanges(Sale $sale, User $user, ?Device $device): void

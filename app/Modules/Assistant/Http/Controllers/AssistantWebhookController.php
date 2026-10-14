@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\RateLimiter;
  * URL: POST /webhook/asisten/{rahasia} (isi di Fonnte > Device > Webhook).
  *  - rahasia URL wajib cocok, selain itu 404
  *  - nomor device dicocokkan bila HERMES_AI_WA_DEVICE diisi
- *  - usaha ditentukan dari nomor pengirim yang didaftarkan pemilik, bukan dari isi pesan
+ *  - usaha ditentukan dari nomor pengirim yang didaftarkan & diverifikasi pemilik, bukan dari isi pesan
+ *  - nomor yang pendaftarnya sudah dinonaktifkan/dihapus tidak dilayani
  *  - nomor tak dikenal, pesan grup, dan pesan dobel diabaikan tanpa balasan (tidak memakan biaya)
  */
 class AssistantWebhookController extends Controller
@@ -45,9 +46,12 @@ class AssistantWebhookController extends Controller
             return $this->ignored('empty');
         }
 
-        $phone = AssistantPhone::allTenants()->where('phone', $sender)->first();
+        $phone = AssistantPhone::allTenants()->with('user')->verified()->where('phone', $sender)->first();
         if (! $phone) {
             return $this->ignored('unknown');
+        }
+        if (! $phone->ownerActive()) {
+            return $this->ignored('inactive');
         }
 
         $id = $request->input('inboxid') ?? $request->input('id');

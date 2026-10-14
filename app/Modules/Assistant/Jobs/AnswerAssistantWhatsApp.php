@@ -4,13 +4,11 @@ namespace App\Modules\Assistant\Jobs;
 
 use App\Modules\Assistant\Models\AssistantPhone;
 use App\Modules\Assistant\Services\Agent;
-use App\Modules\WhatsApp\Services\WhatsAppManager;
+use App\Modules\Assistant\Services\AssistantWhatsApp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /** Menjawab pertanyaan WhatsApp ke Asisten Toko lewat antrean, supaya Fonnte tidak menunggu jawaban AI. */
 class AnswerAssistantWhatsApp implements ShouldQueue
@@ -25,11 +23,11 @@ class AnswerAssistantWhatsApp implements ShouldQueue
         public readonly ?string $externalId = null,
     ) {}
 
-    public function handle(Agent $agent, WhatsAppManager $whatsapp): void
+    public function handle(Agent $agent, AssistantWhatsApp $sender): void
     {
         $phone = AssistantPhone::allTenants()->with(['tenant', 'user'])->find($this->phoneId);
 
-        if (! $phone || ! $phone->tenant) {
+        if (! $phone || ! $phone->tenant || ! $phone->serviceable()) {
             return;
         }
 
@@ -39,16 +37,6 @@ class AnswerAssistantWhatsApp implements ShouldQueue
             return;
         }
 
-        $token = (string) config('hermes.assistant.fonnte_token');
-        $driver = $token !== '' ? $whatsapp->make('fonnte', ['token' => $token]) : $whatsapp->for(null)[1];
-
-        try {
-            $result = $driver->send($phone->phone, $answer->text);
-            if (! $result->ok) {
-                Log::warning('Balasan Asisten Toko gagal dikirim', ['tenant' => $phone->tenant_id, 'error' => $result->error ?? null]);
-            }
-        } catch (Throwable $e) {
-            Log::warning('Balasan Asisten Toko gagal dikirim: '.$e->getMessage(), ['tenant' => $phone->tenant_id]);
-        }
+        $sender->send($phone->phone, $answer->text, $phone->tenant_id);
     }
 }

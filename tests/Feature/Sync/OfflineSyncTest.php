@@ -184,3 +184,40 @@ it('harga normal atau pemilik yang berhak ubah harga tidak memicu "Perlu Dicek"'
     expect(asTenant($this->tenant, fn () => Sale::count()))->toBe(2)
         ->and(asTenant($this->tenant, fn () => SyncConflict::where('type', 'price_changed')->count()))->toBe(0);
 });
+
+it('transaksi bertanggal masa depan dicatat dengan waktu sekarang dan masuk "Perlu Dicek"', function () {
+    $items = offlineSaleAt(72000, $this);
+    $items[1]['payload']['created_at'] = now()->addDays(3)->toIso8601String();
+
+    $this->actingAs($this->kasir)->postJson(route('pos.api.sync'), ['items' => $items])->assertJsonPath('results.1.status', 'ok');
+
+    $sale = asTenant($this->tenant, fn () => Sale::first());
+    expect($sale->completed_at->isAfter(now()->addMinutes(1)))->toBeFalse()
+        ->and(asTenant($this->tenant, fn () => SyncConflict::where('type', 'sale_date')->where('entity_uuid', $sale->uuid)->exists()))->toBeTrue();
+});
+
+it('transaksi yang tanggalnya mundur lebih dari 2 hari masuk "Perlu Dicek"', function () {
+    $items = offlineSaleAt(72000, $this);
+    $items[1]['payload']['created_at'] = now()->subDays(5)->toIso8601String();
+
+    $this->actingAs($this->kasir)->postJson(route('pos.api.sync'), ['items' => $items])->assertJsonPath('results.1.status', 'ok');
+
+    $conflict = asTenant($this->tenant, fn () => SyncConflict::where('type', 'sale_date')->first());
+    expect($conflict)->not->toBeNull()
+        ->and($conflict->message)->toContain($this->kasir->name);
+});
+
+it('transaksi offline yang wajar tidak memicu peringatan tanggal', function () {
+    $this->actingAs($this->kasir)->postJson(route('pos.api.sync'), ['items' => offlineQueue($this)['items']])->assertOk();
+
+    expect(asTenant($this->tenant, fn () => SyncConflict::where('type', 'sale_date')->count()))->toBe(0);
+});
+
+it('jam buka kasir di masa depan diganti waktu sekarang', function () {
+    $items = offlineSaleAt(72000, $this);
+    $items[0]['payload']['opened_at'] = now()->addDays(2)->toIso8601String();
+
+    $this->actingAs($this->kasir)->postJson(route('pos.api.sync'), ['items' => $items])->assertOk();
+
+    expect(asTenant($this->tenant, fn () => Shift::first())->opened_at->isAfter(now()->addMinutes(1)))->toBeFalse();
+});

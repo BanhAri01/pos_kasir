@@ -177,7 +177,7 @@ TXT;
         }
 
         return new AgentAnswer(
-            $answer->text . "\n\n_🔋 Pulsa Asisten tinggal " . $after . '% untuk bulan ini._',
+            $answer->text."\n\n_🔋 Pulsa Asisten tinggal ".$after.'% untuk bulan ini._',
             $answer->status, $answer->mode, $answer->cost, $answer->tools, $answer->model,
         );
     }

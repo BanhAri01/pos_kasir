@@ -10,6 +10,7 @@ Route::middleware(['auth', 'tenant', 'can:view_reports'])->group(function () {
 
     Route::middleware('can:manage_business')->group(function () {
         Route::post('asisten/nomor', [AssistantController::class, 'storePhone'])->middleware('throttle:10,1')->name('assistant.phones.store');
+        Route::post('asisten/nomor/{phone}/verifikasi', [AssistantController::class, 'verifyPhone'])->middleware('throttle:10,1')->name('assistant.phones.verify');
         Route::delete('asisten/nomor/{phone}', [AssistantController::class, 'destroyPhone'])->name('assistant.phones.destroy');
     });
 });

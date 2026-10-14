@@ -714,7 +714,7 @@
     "src": "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-By2-xK5D.css",
+    "file": "assets/app-ChAnGmp-.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -776,7 +776,7 @@
     ]
   },
   "resources/js/Pages/Assistant/Index.vue": {
-    "file": "assets/Index-TNIjtqE3.js",
+    "file": "assets/Index-imZ2It0c.js",
     "name": "Index",
     "src": "resources/js/Pages/Assistant/Index.vue",
     "isDynamicEntry": true,
@@ -1237,7 +1237,7 @@
     ]
   },
   "resources/js/Pages/Dashboard.vue": {
-    "file": "assets/Dashboard-DDeKKIf6.js",
+    "file": "assets/Dashboard-CmW6s5Vc.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Dashboard.vue",
     "isDynamicEntry": true,
@@ -1282,7 +1282,7 @@
     ]
   },
   "resources/js/Pages/Dev/Components.vue": {
-    "file": "assets/Components-B19EnfeK.js",
+    "file": "assets/Components-y6QRQZCp.js",
     "name": "Components",
     "src": "resources/js/Pages/Dev/Components.vue",
     "isDynamicEntry": true,
@@ -2955,7 +2955,7 @@
     ]
   },
   "resources/js/Pages/Settings/Display.vue": {
-    "file": "assets/Display-BxDGMotO.js",
+    "file": "assets/Display-BFRf5Zoz.js",
     "name": "Display",
     "src": "resources/js/Pages/Settings/Display.vue",
     "isDynamicEntry": true,
@@ -4009,7 +4009,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-COFhVLoW.js",
+    "file": "assets/app-CKWhdb0_.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,

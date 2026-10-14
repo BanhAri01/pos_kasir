@@ -5,6 +5,7 @@ use App\Modules\Assistant\Models\AssistantMessage;
 use App\Modules\Assistant\Models\AssistantPhone;
 use App\Modules\Assistant\Models\AssistantTopup;
 use App\Modules\Assistant\Services\Agent;
+use App\Modules\Assistant\Services\AssistantWhatsApp;
 use App\Modules\Assistant\Services\Llm;
 use App\Modules\Assistant\Services\LlmReply;
 use App\Modules\Assistant\Services\Quota;
@@ -13,7 +14,6 @@ use App\Modules\Customer\Models\Customer;
 use App\Modules\Operations\Models\Receivable;
 use App\Modules\Pos\Models\Sale;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 /** AI palsu: pertama memanggil alat, lalu menjawab dengan angka dari hasil alat. Tanpa biaya. */
@@ -138,16 +138,109 @@ describe('Asisten Toko', function () {
     });
 
     it('satu nomor WA hanya untuk satu usaha', function () {
-        $this->actingAs($this->owner)->post(route('assistant.phones.store'), ['phone' => '0812 3333 4444'])->assertSessionHasNoErrors();
+        $code = registerAssistantPhone($this, $this->owner, '0812 3333 4444');
+        $this->actingAs($this->owner)->post(route('assistant.phones.verify', AssistantPhone::allTenants()->sole()), ['code' => $code])->assertSessionHasNoErrors();
 
         $other = registerTenant('toko_kelontong', '6281277770000');
         $this->actingAs($other)->post(route('assistant.phones.store'), ['phone' => '6281233334444'])->assertSessionHasErrors('phone');
     });
 });
 
+function registerAssistantPhone($test, $user, string $phone, bool $ok = true): ?string
+{
+    config(['hermes.assistant.fonnte_token' => 'token-asisten']);
+    Http::fake(['api.fonnte.com/*' => Http::response(['status' => $ok, 'id' => ['1'], 'reason' => $ok ? null : 'nomor tidak aktif'])]);
+
+    $test->actingAs($user)->post(route('assistant.phones.store'), ['phone' => $phone]);
+
+    $sent = Http::recorded()->last()[0] ?? null;
+
+    return $sent && preg_match('/\*(\d{6})\*/', (string) $sent['message'], $m) ? $m[1] : null;
+}
+
+describe('verifikasi nomor Asisten', function () {
+    it('nomor baru menunggu kode dan belum dilayani sampai kodenya benar', function () {
+        $code = registerAssistantPhone($this, $this->owner, '0812 3333 4444');
+        $phone = AssistantPhone::allTenants()->sole();
+
+        expect($code)->not->toBeNull()
+            ->and($phone->isVerified())->toBeFalse();
+        Http::assertSent(fn ($r) => $r['target'] === '6281233334444' && $r->header('Authorization')[0] === 'token-asisten');
+
+        Bus::fake();
+        $this->post('/webhook/asisten/rahasia-asisten-123456', ['sender' => '6281233334444', 'message' => 'omzet?'])->assertJson(['reason' => 'unknown']);
+
+        $this->actingAs($this->owner)->post(route('assistant.phones.verify', $phone), ['code' => '000000'])->assertSessionHasErrors("code_{$phone->id}");
+        $this->actingAs($this->owner)->post(route('assistant.phones.verify', $phone), ['code' => $code])->assertSessionHasNoErrors();
+
+        expect($phone->fresh()->isVerified())->toBeTrue()
+            ->and($phone->fresh()->code_hash)->toBeNull();
+        $this->post('/webhook/asisten/rahasia-asisten-123456', ['sender' => '6281233334444', 'message' => 'omzet?'])->assertJson(['status' => 'accepted']);
+    });
+
+    it('kode salah 5 kali membatalkan kode', function () {
+        $code = registerAssistantPhone($this, $this->owner, '0812 3333 4444');
+        $phone = AssistantPhone::allTenants()->sole();
+
+        foreach (range(1, 5) as $i) {
+            $this->actingAs($this->owner)->post(route('assistant.phones.verify', $phone), ['code' => '111111']);
+        }
+
+        $this->actingAs($this->owner)->post(route('assistant.phones.verify', $phone), ['code' => $code])->assertSessionHasErrors("code_{$phone->id}");
+        expect($phone->fresh()->isVerified())->toBeFalse();
+    });
+
+    it('usaha lain tidak bisa merebut nomor yang sedang didaftarkan, tetapi bisa setelah kodenya kedaluwarsa', function () {
+        registerAssistantPhone($this, $this->owner, '0812 3333 4444');
+        $other = registerTenant('toko_kelontong', '6281277770000');
+
+        $this->actingAs($other)->post(route('assistant.phones.store'), ['phone' => '0812 3333 4444'])->assertSessionHasErrors('phone');
+
+        $this->travel(11)->minutes();
+        $code = registerAssistantPhone($this, $other, '0812 3333 4444');
+
+        $phone = AssistantPhone::allTenants()->sole();
+        expect($phone->tenant_id)->toBe($other->tenant_id)->and($code)->not->toBeNull();
+    });
+
+    it('membatalkan pendaftaran bila kode gagal dikirim', function () {
+        registerAssistantPhone($this, $this->owner, '0812 3333 4444', ok: false);
+
+        expect(AssistantPhone::allTenants()->count())->toBe(0);
+        $this->actingAs($this->owner)->post(route('assistant.phones.store'), ['phone' => '0812 3333 4444'])->assertSessionHasErrors('phone');
+        expect(AssistantPhone::allTenants()->count())->toBe(0);
+    });
+
+    it('kirim ulang kode ditahan 1 menit', function () {
+        registerAssistantPhone($this, $this->owner, '0812 3333 4444');
+        $this->actingAs($this->owner)->post(route('assistant.phones.store'), ['phone' => '0812 3333 4444'])->assertSessionHasErrors('phone');
+
+        $this->travel(2)->minutes();
+        expect(registerAssistantPhone($this, $this->owner, '0812 3333 4444'))->not->toBeNull()
+            ->and(AssistantPhone::allTenants()->count())->toBe(1);
+    });
+
+    it('nomor berhenti dilayani bila karyawan pendaftarnya dinonaktifkan', function () {
+        $manager = addStaff($this->owner, 'manager', '5555', ['phone' => '6281255556666', 'password' => 'rahasia123']);
+        $phone = asTenant($this->tenant, fn () => AssistantPhone::create(['phone' => '6281233334444', 'user_id' => $manager->id, 'verified_at' => now()]));
+        $manager->forceFill(['is_active' => false])->save();
+        Bus::fake();
+
+        $this->post('/webhook/asisten/rahasia-asisten-123456', ['sender' => '6281233334444', 'message' => 'omzet?'])->assertJson(['reason' => 'inactive']);
+        Bus::assertNotDispatchedAfterResponse(AnswerAssistantWhatsApp::class);
+
+        $this->actingAs($this->owner)->get(route('assistant.index'))
+            ->assertInertia(fn ($page) => $page->where('phones.0.status', 'inactive'));
+
+        Http::fake();
+        (new AnswerAssistantWhatsApp($phone->id, 'omzet?'))->handle(app(Agent::class), app(AssistantWhatsApp::class));
+        Http::assertNothingSent();
+    });
+});
+
 describe('webhook WhatsApp Asisten Toko', function () {
     beforeEach(function () {
-        asTenant($this->tenant, fn () => AssistantPhone::create(['phone' => '6281233334444', 'user_id' => $this->owner->id]));
+        asTenant($this->tenant, fn () => AssistantPhone::create(['phone' => '6281233334444', 'user_id' => $this->owner->id, 'verified_at' => now()]));
         Bus::fake();
     });
 
@@ -173,11 +266,11 @@ describe('webhook WhatsApp Asisten Toko', function () {
         Http::fake(['api.fonnte.com/*' => Http::response(['status' => true, 'id' => ['1']])]);
 
         $phone = AssistantPhone::allTenants()->sole();
-        (new AnswerAssistantWhatsApp($phone->id, 'penjualan hari ini?', 'fonnte:xyz'))->handle(app(Agent::class), app(\App\Modules\WhatsApp\Services\WhatsAppManager::class));
+        (new AnswerAssistantWhatsApp($phone->id, 'penjualan hari ini?', 'fonnte:xyz'))->handle(app(Agent::class), app(AssistantWhatsApp::class));
 
         Http::assertSent(fn ($r) => $r['target'] === '6281233334444' && str_contains($r['message'], 'Rp75.000') && $r->header('Authorization')[0] === 'token-asisten');
 
-        (new AnswerAssistantWhatsApp($phone->id, 'penjualan hari ini?', 'fonnte:xyz'))->handle(app(Agent::class), app(\App\Modules\WhatsApp\Services\WhatsAppManager::class));
+        (new AnswerAssistantWhatsApp($phone->id, 'penjualan hari ini?', 'fonnte:xyz'))->handle(app(Agent::class), app(AssistantWhatsApp::class));
         Http::assertSentCount(1);
     });
 });
