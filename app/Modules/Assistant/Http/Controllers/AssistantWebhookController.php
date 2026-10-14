@@ -62,7 +62,7 @@ class AssistantWebhookController extends Controller
         }
         RateLimiter::hit($key, 60);
 
-        AnswerAssistantWhatsApp::dispatch($phone->id, mb_substr($text, 0, 2000), $externalId);
+        AnswerAssistantWhatsApp::dispatchAfterResponse($phone->id, mb_substr($text, 0, 2000), $externalId);
 
         return response()->json(['status' => 'accepted']);
     }

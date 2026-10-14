@@ -148,12 +148,12 @@ describe('Asisten Toko', function () {
 describe('webhook WhatsApp Asisten Toko', function () {
     beforeEach(function () {
         asTenant($this->tenant, fn () => AssistantPhone::create(['phone' => '6281233334444', 'user_id' => $this->owner->id]));
-        Queue::fake();
+        Bus::fake();
     });
 
     it('menolak tanpa kode rahasia yang benar', function () {
         $this->post('/webhook/asisten/salah-kode-rahasia-1234', ['sender' => '6281233334444', 'message' => 'halo'])->assertNotFound();
-        Queue::assertNothingPushed();
+        Bus::assertNotDispatchedAfterResponse(AnswerAssistantWhatsApp::class);
     });
 
     it('mengabaikan nomor asing, grup, dan pesan dobel', function () {
@@ -161,10 +161,10 @@ describe('webhook WhatsApp Asisten Toko', function () {
 
         $this->post($url, ['sender' => '6281200001111', 'message' => 'omzet?'])->assertJson(['reason' => 'unknown']);
         $this->post($url, ['sender' => '6281233334444', 'message' => 'omzet?', 'member' => '628111'])->assertJson(['reason' => 'group']);
-        Queue::assertNothingPushed();
+        Bus::assertNotDispatchedAfterResponse(AnswerAssistantWhatsApp::class);
 
         $this->post($url, ['sender' => '6281233334444', 'message' => 'omzet?', 'inboxid' => 'abc'])->assertJson(['status' => 'accepted']);
-        Queue::assertPushed(AnswerAssistantWhatsApp::class, 1);
+        Bus::assertDispatchedAfterResponse(AnswerAssistantWhatsApp::class, 1);
     });
 
     it('job menjawab ke nomor pengirim memakai data usahanya sendiri', function () {
