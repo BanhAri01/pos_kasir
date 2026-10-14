@@ -55,32 +55,76 @@ class PosQrisController extends Controller
                 $webhookUrl = route('pos.qris.webhook');
                 $result = $gateway->createDirectQris($orderId, $data['amount'], $webhookUrl);
 
+                $qrUrl = $result['qr_url'] ?? null;
+                $qrString = $result['qr_string'] ?? null;
+
+                if (empty($qrUrl) && ! empty($qrString)) {
+                    $qrUrl = $this->generateQrSvgDataUri($qrString);
+                }
+
                 return response()->json([
                     'order_id' => $orderId,
                     'amount' => $data['amount'],
-                    'qr_string' => $result['qr_string'] ?? null,
-                    'qr_url' => $result['qr_url'] ?? null,
+                    'qr_string' => $qrString,
+                    'qr_url' => $qrUrl,
                     'status' => 'pending',
                 ]);
             } catch (\Throwable $e) {
                 Log::warning('Gagal membuat QRIS Midtrans POS: '.$e->getMessage(), ['order_id' => $orderId]);
 
                 return response()->json([
-                    'message' => 'Gagal membuat kode QRIS: '.$e->getMessage(),
-                ], 500);
+                    'message' => $e->getMessage(),
+                ], 422);
             }
         }
 
         // Mode Fake / Testing
+        $mockQrString = "00020101021226590014ID.LINKAJA.WWW011893600911002239472302150000{$orderId}520454995303360540{$data['amount']}5802ID5911HERMES_POS6007JAKARTA6304";
         return response()->json([
             'order_id' => $orderId,
             'amount' => $data['amount'],
-            'qr_string' => "00020101021226590014ID.LINKAJA.WWW011893600911002239472302150000{$orderId}520454995303360540{$data['amount']}5802ID5911HERMES_POS6007JAKARTA6304",
-            'qr_url' => null,
+            'qr_string' => $mockQrString,
+            'qr_url' => $this->generateQrSvgDataUri($mockQrString),
             'status' => 'pending',
             'is_mock' => true,
         ]);
     }
+
+    /**
+     * Simulasi pembayaran berhasil (khusus mode testing / pengujian lokal).
+     */
+    public function simulate(Request $request, string $orderId, TenantContext $context, WalletService $wallets): JsonResponse
+    {
+        $cached = Cache::get("pos_qris:{$orderId}");
+        if (! $cached) {
+            return response()->json(['message' => 'Transaksi QRIS tidak ditemukan atau telah kedaluwarsa.'], 404);
+        }
+
+        $tenant = $context->get();
+        $this->markOrderPaid($orderId, $cached, $tenant, (int) ($cached['amount'] ?? 0), $wallets);
+
+        return response()->json(['status' => 'paid', 'order_id' => $orderId]);
+    }
+
+    /**
+     * Konversi string QRIS EMVCo menjadi gambar SVG Data URI scannable.
+     */
+    private function generateQrSvgDataUri(string $content): string
+    {
+        try {
+            $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+                new \BaconQrCode\Renderer\RendererStyle\RendererStyle(280),
+                new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+            );
+            $writer = new \BaconQrCode\Writer($renderer);
+            $svg = $writer->writeString($content);
+
+            return 'data:image/svg+xml;utf8,'.rawurlencode($svg);
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
 
     /**
      * Kasir mengecek status pembayaran QRIS (polling otomatis tiap beberapa detik).

@@ -738,7 +738,7 @@
     "src": "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-D-r0ZOUr.css",
+    "file": "assets/app-kxSub8nj.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -4174,7 +4174,7 @@
     ]
   },
   "resources/js/pos/main.js": {
-    "file": "assets/main-y-byFjvv.js",
+    "file": "assets/main-qhEm2jTv.js",
     "name": "main",
     "src": "resources/js/pos/main.js",
     "isEntry": true,
@@ -4210,10 +4210,10 @@
       "_rotate-ccw-DY_bgrP7.js",
       "_smartphone-DTdSgJtk.js",
       "_qr-code-B10yzagl.js",
+      "_circle-check-aaqtqMqk.js",
       "_refresh-cw-CDpu9KK4.js",
       "_info-BybFmO8G.js",
       "_circle-alert-kNiOoEuc.js",
-      "_circle-check-aaqtqMqk.js",
       "_shopping-cart-1XlOchmX.js",
       "_badge-check-C5rfHkcB.js",
       "_check-BXGhhkAj.js",

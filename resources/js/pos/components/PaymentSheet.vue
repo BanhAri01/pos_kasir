@@ -134,6 +134,17 @@ function closeQrisModal() {
     qrisData.value = null;
 }
 
+async function simulateQrisPayment(orderId) {
+    if (!orderId) return;
+    try {
+        await api.post(`/kasir/api/qris/simulate/${orderId}`);
+        await checkQrisStatus(orderId, false);
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+
 function chooseMethod(method) {
     const current = active.value;
     current.method = method;
@@ -350,11 +361,20 @@ async function pay() {
 
                 <div class="mt-5 flex w-full flex-col gap-2">
                     <button
+                        v-if="qrisData?.is_mock"
+                        type="button"
+                        class="pressable flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary bg-primary-soft text-sm font-bold text-primary-ink hover:bg-primary/20"
+                        @click="simulateQrisPayment(qrisData?.order_id)"
+                    >
+                        <CheckCircle2 :size="18" /> Simulasikan Pembeli Bayar (Testing)
+                    </button>
+                    <button
                         type="button"
                         class="pressable flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-bold text-on-primary hover:opacity-90"
                         :disabled="checkingQris"
                         @click="checkQrisStatus(qrisData?.order_id, true)"
                     >
+
                         <RefreshCw :size="18" :class="{ 'animate-spin': checkingQris }" />
                         {{ checkingQris ? 'Mengecek...' : 'Cek Status Sekarang' }}
                     </button>

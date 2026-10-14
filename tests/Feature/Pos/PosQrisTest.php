@@ -126,4 +126,26 @@ describe('uji fitur qris dinamis kasir & integrasi pembayaran sentral (moka pay)
         // 50.000 - 0.7% (350) = 49.650 (hanya 1x masuk, tidak berlipat jadi 99.300)
         expect($wallet->balance)->toBe(49650);
     });
+
+    it('dapat mensimulasikan pembayaran qris pada mode testing', function () {
+        $orderId = "POS-{$this->tenant->id}-mock-order-222";
+        Cache::put("pos_qris:{$orderId}", [
+            'tenant_id' => $this->tenant->id,
+            'sale_uuid' => 'mock-uuid-222',
+            'amount' => 20000,
+            'status' => 'pending',
+        ], 3600);
+
+        $response = $this->actingAs($this->owner)->postJson(route('pos.api.qris.simulate', $orderId));
+
+        $response->assertOk()
+            ->assertJson(['status' => 'paid']);
+
+        $cached = Cache::get("pos_qris:{$orderId}");
+        expect($cached['status'])->toBe('paid');
+
+        $wallet = $this->tenant->wallet()->first();
+        expect($wallet->balance)->toBe(19860); // 20.000 - 0.7% (140) = 19.860
+    });
 });
+

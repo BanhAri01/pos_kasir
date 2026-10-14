@@ -131,8 +131,16 @@ class MidtransGateway implements PaymentGateway
             throw new RuntimeException('Tidak bisa terhubung ke Midtrans.', previous: $exception);
         }
 
-        if ($response->failed() && (string) $response->json('status_code') !== '201') {
-            throw new RuntimeException('Midtrans menolak QRIS: '.implode(', ', (array) $response->json('error_messages', [$response->status()])));
+        $statusCode = (string) $response->json('status_code', (string) $response->status());
+        if ($statusCode !== '201') {
+            $msg = $response->json('status_message')
+                ?? implode(', ', (array) $response->json('error_messages', [(string) $response->status()]));
+
+            if ($statusCode === '402' || str_contains(strtolower((string) $msg), 'not activated')) {
+                throw new RuntimeException('Metode QRIS di akun Midtrans Anda belum aktif (status "Activation in progress"). Silakan cek menu Payment Methods di dashboard Midtrans atau gunakan mode Sandbox/Fake untuk testing.');
+            }
+
+            throw new RuntimeException("Midtrans menolak pembuatan QRIS: {$msg} (kode: {$statusCode})");
         }
 
         $qrUrl = null;
@@ -166,11 +174,12 @@ class MidtransGateway implements PaymentGateway
             ->retry(2, 300, fn (Throwable $e) => $e instanceof ConnectionException
                 || ($e instanceof RequestException && $e->response->serverError()), throw: false);
 
-        if (app()->isLocal() && ! ini_get('curl.cainfo')) {
+        if (app()->isLocal()) {
             $client->withoutVerifying();
         }
 
         return $client;
+
     }
 
     private function snapUrl(): string

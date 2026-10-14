@@ -55,5 +55,7 @@ Route::middleware(['auth', 'tenant', 'can:use_pos'])->group(function () {
 
         Route::post('qris/generate', [PosQrisController::class, 'generate'])->name('qris.generate');
         Route::get('qris/check/{orderId}', [PosQrisController::class, 'check'])->name('qris.check');
+        Route::post('qris/simulate/{orderId}', [PosQrisController::class, 'simulate'])->name('qris.simulate');
     });
 });
+
