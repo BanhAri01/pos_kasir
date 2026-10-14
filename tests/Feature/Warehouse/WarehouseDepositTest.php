@@ -301,3 +301,11 @@ describe('keamanan dan pencegahan idor multi-tenancy', function () {
             ->assertForbidden();
     });
 });
+
+it('tombol WA tagihan dibuat saat ditekan dan tidak bisa untuk pelanggan usaha lain', function () {
+    $this->actingAs($this->owner)->get(route('warehouse.deposits.wa-link', $this->joko))
+        ->assertRedirectContains('https://wa.me/6281234567890');
+
+    $other = registerTenant('toko_kelontong', '6281288880000');
+    $this->actingAs($other)->get(route('warehouse.deposits.wa-link', $this->joko))->assertNotFound();
+});

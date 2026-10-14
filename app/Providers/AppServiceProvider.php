@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Core\Tenancy\CurrentOutlet;
 use App\Core\Tenancy\TenantContext;
+use App\Modules\Assistant\Services\ClaudeLlm;
+use App\Modules\Assistant\Services\Llm;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
         // "scoped": otomatis direset di setiap request / job antrean.
         $this->app->scoped(TenantContext::class);
         $this->app->scoped(CurrentOutlet::class);
+        $this->app->bind(Llm::class, ClaudeLlm::class);
     }
 
     public function boot(): void

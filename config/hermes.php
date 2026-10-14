@@ -55,7 +55,7 @@ return [
             'outlets' => null,
             'staff' => null,
             'whatsapp' => 2000,
-            'highlights' => ['Outlet & karyawan tanpa batas', '2.000 pesan WhatsApp per bulan', 'Nomor WhatsApp sendiri', 'Gudang, olah, kemas ulang, batch'],
+            'highlights' => ['Outlet & karyawan tanpa batas', '2.000 pesan WhatsApp per bulan', 'Nomor WhatsApp sendiri', 'Asisten Toko: tanya omzet & stok lewat WhatsApp', 'Gudang, olah, kemas ulang, batch'],
         ],
     ],
 
@@ -76,6 +76,7 @@ return [
 
     'plan_features' => [
         'own_whatsapp' => 'bisnis',
+        'assistant' => 'bisnis',
     ],
 
     'durations' => [
@@ -110,5 +111,34 @@ return [
         'path' => env('HERMES_BACKUP_PATH', storage_path('app/backups')),
         'keep_days' => (int) env('HERMES_BACKUP_KEEP_DAYS', 14),
         'dump_binary' => env('HERMES_DUMP_BINARY'),
+    ],
+    // Asisten Toko (AI lewat aplikasi & WhatsApp). Pulsa dihitung dalam rupiah dari biaya token asli.
+    'assistant' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        // Nomor WA khusus asisten di Fonnte; webhook Fonnte diarahkan ke /webhook/asisten/{secret}.
+        'fonnte_token' => env('HERMES_AI_FONNTE_TOKEN'),
+        'webhook_secret' => env('HERMES_AI_WEBHOOK_SECRET'),
+        'wa_device' => env('HERMES_AI_WA_DEVICE'),
+        'timeout' => (float) env('HERMES_AI_TIMEOUT', 60),
+        'usd_rate' => (float) env('HERMES_AI_USD_RATE', 16500),
+        'budget' => (int) env('HERMES_AI_BUDGET', 15000),
+        'trial_budget' => (int) env('HERMES_AI_TRIAL_BUDGET', 3000),
+        'daily_share' => 0.2,
+        'max_phones' => 3,
+        'max_rounds' => 6,
+        'history' => 6,
+        'history_hours' => 3,
+        'question_max' => 500,
+        'question_estimate' => 40,
+        'modes' => [
+            'quick' => ['model' => env('HERMES_AI_QUICK_MODEL', 'claude-haiku-5-5'), 'effort' => 'low', 'max_tokens' => 4000, 'reserve' => 200],
+            'deep' => ['model' => env('HERMES_AI_DEEP_MODEL', 'claude-haiku-5-5'), 'effort' => env('HERMES_AI_DEEP_EFFORT', 'high'), 'max_tokens' => 12000, 'reserve' => 2500],
+        ],
+        // Harga USD per 1 juta token.
+        'prices' => [
+            'claude-haiku-5-5' => ['input' => 0.10, 'output' => 0.50, 'cache_read' => 0.01, 'cache_write' => 0.125],
+            'claude-sonnet-5-5' => ['input' => 2.00, 'output' => 10.00, 'cache_read' => 0.20, 'cache_write' => 2.50],
+            'claude-opus-5-5' => ['input' => 4.00, 'output' => 20.00, 'cache_read' => 0.40, 'cache_write' => 5.00],
+        ],
     ],
 ];

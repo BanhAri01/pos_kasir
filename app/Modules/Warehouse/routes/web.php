@@ -52,6 +52,7 @@ Route::middleware(['auth', 'tenant', 'can:manage_stock'])->prefix('gudang')->gro
     // Titip Uang Pelanggan & Tagihan WA Gudang
     Route::get('titip-uang', [WarehouseDepositController::class, 'index'])->name('warehouse.deposits');
     Route::post('titip-uang', [WarehouseDepositController::class, 'store'])->name('warehouse.deposits.store');
+    Route::get('titip-uang/{customer}/wa', [WarehouseDepositController::class, 'waLink'])->name('warehouse.deposits.wa-link');
     Route::post('titip-uang/{customer}/wa', [WarehouseDepositController::class, 'sendWa'])->name('warehouse.deposits.wa');
     Route::get('titip-uang/{customer}/riwayat', [WarehouseDepositController::class, 'history'])->name('warehouse.deposits.history');
 });

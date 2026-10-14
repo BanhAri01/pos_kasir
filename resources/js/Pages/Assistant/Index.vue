@@ -1,397 +1,164 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import {
-    Bot, Check, Copy, MessageSquare, Phone, Plus, Send,
-    Sparkles, Trash2, User, Zap, BarChart2, TrendingUp,
-    AlertTriangle, Award, Users, Receipt
-} from 'lucide-vue-next';
+/**
+ * Asisten Toko: tanya data usaha dengan bahasa sehari-hari, lewat aplikasi atau WhatsApp.
+ * Asisten hanya membaca data; pulsa ditampilkan dalam persen supaya mudah dipahami.
+ */
+import { nextTick, onMounted, ref } from 'vue';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { BatteryMedium, Bot, Lock, MessageCircle, Send, Sparkles, Trash2, UserRound } from 'lucide-vue-next';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import BigButton from '@/Components/ui/BigButton.vue';
+import BigInput from '@/Components/ui/BigInput.vue';
+import { api } from '@/pos/lib/api';
 
 defineOptions({ layout: AppLayout });
 
 const props = defineProps({
+    allowed: { type: Boolean, default: false },
+    requiredPlan: { type: String, default: 'Bisnis' },
+    live: { type: Boolean, default: false },
+    quota: { type: Object, default: () => ({ percent: 0, questions: 0 }) },
     messages: { type: Array, default: () => [] },
+    canManagePhones: { type: Boolean, default: false },
     phones: { type: Array, default: () => [] },
-    stats: { type: Object, default: () => ({}) },
-    isClaudeConfigured: { type: Boolean, default: false },
-    webhookUrl: { type: String, default: '' },
+    maxPhones: { type: Number, default: 3 },
+    examples: { type: Array, default: () => [] },
 });
 
-const activeTab = ref('chat'); // 'chat' | 'whatsapp'
-const chatContainer = ref(null);
-const copied = ref(false);
+const chat = ref([...props.messages]);
+const quota = ref({ ...props.quota });
+const question = ref('');
+const sending = ref(false);
+const error = ref('');
+const list = ref(null);
 
-const quickPrompts = [
-    { label: 'Omset Hari Ini', query: 'Berapa omset dan penjualan hari ini?', icon: BarChart2 },
-    { label: 'Produk Terlaris', query: 'Apa saja 5 produk terlaris bulan ini?', icon: Award },
-    { label: 'Stok Menipis', query: 'Ada barang yang stoknya menipis atau habis?', icon: AlertTriangle },
-    { label: 'Performa Kasir', query: 'Bagaimana performa penjualan kasir hari ini?', icon: Users },
-    { label: 'Laba Bersih', query: 'Berapa perkiraan laba kotor dan laba bersih bulan ini?', icon: TrendingUp },
-    { label: 'Kasbon Tertunggak', query: 'Siapa pelanggan yang masih punya sisa kasbon?', icon: Receipt },
-];
+const phoneForm = useForm({ phone: '', label: '' });
 
-const askForm = useForm({
-    message: '',
-    driver: props.isClaudeConfigured ? 'claude' : 'demo',
-});
-
-const phoneForm = useForm({
-    phone: '',
-    label: 'Owner Toko',
-});
-
-function scrollToBottom() {
+function scrollDown() {
     nextTick(() => {
-        if (chatContainer.value) {
-            chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
-        }
+        if (list.value) list.value.scrollTop = list.value.scrollHeight;
     });
 }
 
-onMounted(() => {
-    scrollToBottom();
-});
+onMounted(scrollDown);
 
-watch(() => props.messages.length, () => {
-    scrollToBottom();
-});
+async function ask(text = question.value) {
+    const q = text.trim();
+    if (!q || sending.value) return;
 
-function sendQuery(text) {
-    askForm.message = text;
-    submitQuery();
+    error.value = '';
+    sending.value = true;
+    chat.value.push({ id: `q${Date.now()}`, role: 'user', text: q, time: '' });
+    question.value = '';
+    scrollDown();
+
+    try {
+        const res = await api.post(route('assistant.ask'), { question: q });
+        chat.value.push({ id: `a${Date.now()}`, role: 'assistant', text: res.text, status: res.status, time: res.time });
+        quota.value = res.quota;
+    } catch (e) {
+        error.value = e.message;
+        question.value = q;
+        chat.value.pop();
+    } finally {
+        sending.value = false;
+        scrollDown();
+    }
 }
 
-function submitQuery() {
-    if (!askForm.message.trim() || askForm.processing) return;
-
-    askForm.post(route('assistant.ask'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            askForm.reset('message');
-            scrollToBottom();
-        },
-    });
+function addPhone() {
+    phoneForm.post(route('assistant.phones.store'), { preserveScroll: true, onSuccess: () => phoneForm.reset() });
 }
 
-function submitPhone() {
-    if (!phoneForm.phone.trim() || phoneForm.processing) return;
-
-    phoneForm.post(route('assistant.phone.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            phoneForm.reset();
-        },
-    });
+function removePhone(phone) {
+    router.delete(route('assistant.phones.destroy', phone.id), { preserveScroll: true });
 }
 
-function deletePhone(id) {
-    if (!confirm('Hapus nomor WhatsApp ini dari daftar akses Asisten AI?')) return;
-    router.delete(route('assistant.phone.destroy', id), {
-        preserveScroll: true,
-    });
-}
-
-function copyWebhook() {
-    navigator.clipboard.writeText(props.webhookUrl);
-    copied.value = true;
-    setTimeout(() => {
-        copied.value = false;
-    }, 2000);
-}
-
-function formatMarkdown(text) {
-    if (!text) return '';
-    // Format bold *text* to <strong>text</strong>
-    let formatted = text.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
-    // Convert newlines to <br>
-    formatted = formatted.replace(/\n/g, '<br>');
-    return formatted;
+// *tebal* gaya WhatsApp -> tebal; teks lain di-escape dulu supaya aman ditampilkan.
+function format(text) {
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return escaped.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>').replace(/(^|\s)_([^_\n]+)_(?=\s|$)/g, '$1<em>$2</em>');
 }
 </script>
 
 <template>
-    <Head title="Asisten Toko (AI)" />
-    <PageHeader
-        title="Asisten Toko (AI)"
-        subtitle="Analisis omset, stok, laba & kasbon langsung dari data toko secara cerdas."
-        :back-href="route('dashboard')"
-    />
+    <Head title="Asisten Toko" />
+    <PageHeader title="Asisten Toko" subtitle="Tanya penjualan, stok, dan untung dengan bahasa sehari-hari." :back-href="route('more')" />
 
-    <!-- Header Stats & Mode Info -->
-    <div class="mb-6 grid gap-4 sm:grid-cols-3">
-        <div class="card flex items-center gap-4 p-4">
-            <div class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary-ink">
-                <Sparkles :size="24" />
-            </div>
-            <div>
-                <p class="text-sm font-semibold text-ink-soft">Pertanyaan Hari Ini</p>
-                <p class="font-display text-2xl font-extrabold text-ink">
-                    {{ stats.messages_today ?? 0 }} <span class="text-sm font-normal text-ink-soft">/ {{ stats.messages_limit ?? 100 }}</span>
-                </p>
-            </div>
-        </div>
-
-        <div class="card flex items-center gap-4 p-4">
-            <div class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent-ink">
-                <Zap :size="24" />
-            </div>
-            <div>
-                <p class="text-sm font-semibold text-ink-soft">Driver AI Aktif</p>
-                <p class="text-lg font-bold text-ink">
-                    {{ isClaudeConfigured ? 'Claude 3.5 Haiku' : 'Mode Offline / Demo' }}
-                </p>
-                <p class="text-xs text-ink-soft">
-                    {{ isClaudeConfigured ? 'Model penalaran resmi Anthropic' : 'Gratis, respon instan membaca database' }}
-                </p>
-            </div>
-        </div>
-
-        <div class="card flex items-center gap-4 p-4">
-            <div class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-surface-2 text-ink">
-                <Phone :size="24" />
-            </div>
-            <div>
-                <p class="text-sm font-semibold text-ink-soft">Akses WhatsApp</p>
-                <p class="text-lg font-bold text-ink">
-                    {{ phones.length }} Nomor Terdaftar
-                </p>
-                <p class="text-xs text-ink-soft">Bisa tanya asisten langsung dari WA</p>
-            </div>
-        </div>
+    <div v-if="!allowed" class="card flex flex-col items-center gap-3 p-8 text-center">
+        <Lock :size="40" class="text-ink-soft" aria-hidden="true" />
+        <p class="text-xl font-bold text-ink">Asisten Toko tersedia di paket {{ requiredPlan }}</p>
+        <p class="max-w-md text-lg text-ink-soft">Tanya "penjualan hari ini berapa?" atau "stok apa yang mau habis?" langsung dari WhatsApp, tanpa membuka laporan.</p>
+        <Link :href="route('billing.index')" class="pressable mt-2 inline-flex min-h-touch items-center rounded-2xl bg-primary px-6 text-lg font-bold text-on-primary">Lihat Paket</Link>
     </div>
 
-    <!-- Tab Selector -->
-    <div class="mb-6 flex gap-2 border-b border-line pb-2">
-        <button
-            type="button"
-            class="pressable flex items-center gap-2 rounded-xl px-4 py-2.5 text-base font-bold transition"
-            :class="activeTab === 'chat' ? 'bg-primary text-on-primary' : 'bg-surface-2 text-ink hover:bg-surface-3'"
-            @click="activeTab = 'chat'"
-        >
-            <MessageSquare :size="18" />
-            Chat Asisten
-        </button>
-        <button
-            type="button"
-            class="pressable flex items-center gap-2 rounded-xl px-4 py-2.5 text-base font-bold transition"
-            :class="activeTab === 'whatsapp' ? 'bg-primary text-on-primary' : 'bg-surface-2 text-ink hover:bg-surface-3'"
-            @click="activeTab = 'whatsapp'"
-        >
-            <Phone :size="18" />
-            Pengaturan WhatsApp Bot
-        </button>
-    </div>
-
-    <!-- TAB 1: Chat Interface -->
-    <div v-show="activeTab === 'chat'" class="flex flex-col gap-4">
-        <!-- Quick Question Pills -->
-        <div>
-            <p class="mb-2 text-xs font-extrabold uppercase tracking-wider text-ink-soft">Pertanyaan Cepat:</p>
-            <div class="flex flex-wrap gap-2">
-                <button
-                    v-for="q in quickPrompts"
-                    :key="q.label"
-                    type="button"
-                    class="pressable flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-bold text-ink shadow-xs hover:border-primary hover:text-primary-ink"
-                    :disabled="askForm.processing"
-                    @click="sendQuery(q.query)"
-                >
-                    <component :is="q.icon" :size="15" class="text-primary" />
-                    {{ q.label }}
-                </button>
-            </div>
+    <template v-else>
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+            <span class="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-primary-soft px-4 text-lg font-bold text-primary-ink">
+                <BatteryMedium :size="22" aria-hidden="true" />
+                Pulsa {{ quota.percent }}% <span class="font-normal">(± {{ quota.questions }} pertanyaan)</span>
+            </span>
+            <span v-if="!live" class="text-base text-ink-soft">Asisten pintar belum diaktifkan admin, sementara dijawab dengan data singkat.</span>
         </div>
 
-        <!-- Chat Container Box -->
-        <div class="card flex h-[500px] flex-col overflow-hidden">
-            <!-- Messages Scroll Area -->
-            <div ref="chatContainer" class="flex-1 space-y-4 overflow-y-auto p-4 md:p-6">
-                <!-- Welcome Banner if empty -->
-                <div v-if="messages.length === 0" class="flex h-full flex-col items-center justify-center text-center p-6 text-ink-soft">
-                    <div class="mb-3 flex size-16 items-center justify-center rounded-3xl bg-primary-soft text-primary">
-                        <Bot :size="36" />
-                    </div>
-                    <h3 class="text-xl font-extrabold text-ink">Halo! Ada yang bisa saya bantu hari ini?</h3>
-                    <p class="mt-1 max-w-md text-sm text-ink-soft">
-                        Tanyakan omset hari ini, stok yang mau habis, menu terlaris, kasir paling produktif, atau daftar kasbon pelanggan.
-                    </p>
+        <div class="card flex flex-col p-0">
+            <div ref="list" class="flex max-h-[60vh] min-h-64 flex-col gap-3 overflow-y-auto p-4" aria-live="polite">
+                <div v-if="chat.length === 0" class="py-6 text-center text-lg text-ink-soft">
+                    <Sparkles :size="32" class="mx-auto mb-2 text-primary" aria-hidden="true" />
+                    Pilih contoh pertanyaan di bawah, atau ketik sendiri.
                 </div>
-
-                <!-- Chat History Messages -->
-                <div
-                    v-for="msg in messages"
-                    :key="msg.id"
-                    class="flex gap-3"
-                    :class="msg.sender_type === 'user' ? 'justify-end' : 'justify-start'"
-                >
-                    <!-- Bot Avatar -->
-                    <div
-                        v-if="msg.sender_type === 'assistant'"
-                        class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary"
-                    >
-                        <Bot :size="20" />
-                    </div>
-
-                    <!-- Message Bubble -->
-                    <div
-                        class="max-w-[85%] rounded-2xl px-4 py-3 text-base shadow-xs md:max-w-[75%]"
-                        :class="msg.sender_type === 'user' ? 'bg-primary text-on-primary rounded-tr-xs' : 'bg-surface-2 text-ink rounded-tl-xs'"
-                    >
-                        <!-- Content -->
-                        <div class="leading-relaxed" v-html="formatMarkdown(msg.message)" />
-
-                        <!-- Meta Info (tools used & time) -->
-                        <div
-                            class="mt-2 flex items-center justify-between gap-3 text-xs opacity-75"
-                            :class="msg.sender_type === 'user' ? 'text-on-primary' : 'text-ink-soft'"
-                        >
-                            <span v-if="msg.tools_called && msg.tools_called.length > 0" class="inline-flex items-center gap-1 font-semibold">
-                                <Zap :size="12" /> Data riil sistem
-                            </span>
-                            <span v-else />
-                            <span>{{ new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</span>
-                        </div>
-                    </div>
-
-                    <!-- User Avatar -->
-                    <div
-                        v-if="msg.sender_type === 'user'"
-                        class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ink/10 text-ink"
-                    >
-                        <User :size="20" />
+                <div v-for="m in chat" :key="m.id" class="flex gap-2" :class="m.role === 'user' ? 'flex-row-reverse' : ''">
+                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full" :class="m.role === 'user' ? 'bg-surface-2 text-ink' : 'bg-primary-soft text-primary-ink'">
+                        <UserRound v-if="m.role === 'user'" :size="20" aria-hidden="true" />
+                        <Bot v-else :size="20" aria-hidden="true" />
+                    </span>
+                    <div class="max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-lg leading-relaxed" :class="m.role === 'user' ? 'bg-primary text-on-primary' : 'bg-surface-2 text-ink'">
+                        <span v-html="format(m.text)" />
+                        <span v-if="m.time" class="mt-1 block text-right text-sm opacity-70">{{ m.time }}</span>
                     </div>
                 </div>
-
-                <!-- Loading Bubble -->
-                <div v-if="askForm.processing" class="flex items-center gap-3">
-                    <div class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                        <Bot :size="20" />
-                    </div>
-                    <div class="rounded-2xl rounded-tl-xs bg-surface-2 px-4 py-3 text-sm text-ink-soft shadow-xs">
-                        <span class="inline-flex items-center gap-2">
-                            <span class="size-2 animate-ping rounded-full bg-primary" />
-                            Sedang menganalisis data kasir...
-                        </span>
-                    </div>
+                <div v-if="sending" class="flex items-center gap-2 text-lg text-ink-soft">
+                    <Bot :size="20" class="animate-pulse text-primary" aria-hidden="true" /> Sedang membaca data toko...
                 </div>
             </div>
 
-            <!-- Input Bar -->
-            <div class="border-t border-line bg-surface p-3">
-                <form class="flex items-center gap-2" @submit.prevent="submitQuery">
-                    <input
-                        v-model="askForm.message"
-                        type="text"
-                        placeholder="Tanya omset, stok, produk terlaris, kasbon..."
-                        class="min-h-12 flex-1 rounded-xl border border-line bg-surface-2 px-4 text-base text-ink focus:border-primary focus:bg-surface focus:outline-none"
-                        :disabled="askForm.processing"
-                    />
-                    <button
-                        type="submit"
-                        class="pressable flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary transition hover:opacity-90 disabled:opacity-50"
-                        :disabled="!askForm.message.trim() || askForm.processing"
-                    >
-                        <Send :size="20" />
+            <div class="border-t border-line p-4">
+                <div class="mb-3 flex flex-wrap gap-2">
+                    <button v-for="ex in examples" :key="ex" type="button" class="pressable min-h-11 rounded-full border-2 border-line px-4 text-base font-semibold text-ink hover:bg-ink/5" :disabled="sending" @click="ask(ex)">
+                        {{ ex }}
+                    </button>
+                </div>
+                <form class="flex gap-2" @submit.prevent="ask()">
+                    <label for="assistant-question" class="sr-only">Pertanyaan</label>
+                    <input id="assistant-question" v-model="question" maxlength="500" class="min-h-touch flex-1 rounded-2xl border-2 border-line bg-surface px-4 text-lg text-ink" placeholder="Contoh: penjualan kemarin berapa?" :disabled="sending" />
+                    <button type="submit" class="pressable flex min-h-touch min-w-touch items-center justify-center rounded-2xl bg-primary px-4 text-on-primary" :disabled="sending || !question.trim()" aria-label="Kirim pertanyaan">
+                        <Send :size="24" aria-hidden="true" />
                     </button>
                 </form>
+                <p v-if="error" class="mt-2 text-base font-semibold text-danger">{{ error }}</p>
+                <p class="mt-2 text-sm text-ink-soft">Asisten hanya membaca data, tidak mengubah apa pun. Ketik "pulsa" untuk cek sisa pulsa.</p>
             </div>
         </div>
-    </div>
 
-    <!-- TAB 2: WhatsApp Bot Integration -->
-    <div v-show="activeTab === 'whatsapp'" class="space-y-6">
-        <!-- Tutorial Card -->
-        <div class="card p-6">
-            <h2 class="text-xl font-extrabold text-ink">Hubungkan dengan WhatsApp Toko (Fonnte)</h2>
-            <p class="mt-1 text-base text-ink-soft">
-                Anda dan manajer toko dapat bertanya langsung kepada Asisten AI melalui chat WhatsApp tanpa perlu membuka aplikasi kasir.
-            </p>
+        <section v-if="canManagePhones" class="card mt-6 p-4">
+            <h2 class="flex items-center gap-2 text-xl font-bold text-ink"><MessageCircle :size="22" aria-hidden="true" /> Tanya lewat WhatsApp</h2>
+            <p class="mt-1 text-lg text-ink-soft">Daftarkan nomor pemilik (maksimal {{ maxPhones }}). Nomor ini bisa mengirim pertanyaan ke nomor WhatsApp Asisten Hermes POS.</p>
 
-            <div class="mt-4 rounded-2xl bg-surface-2 p-4">
-                <p class="text-sm font-bold text-ink">Webhook URL untuk Fonnte:</p>
-                <div class="mt-2 flex items-center gap-2">
-                    <code class="flex-1 overflow-x-auto rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                        {{ webhookUrl }}
-                    </code>
-                    <button
-                        type="button"
-                        class="pressable flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-bold text-ink hover:bg-surface-2"
-                        @click="copyWebhook"
-                    >
-                        <Check v-if="copied" :size="16" class="text-success" />
-                        <Copy v-else :size="16" />
-                        {{ copied ? 'Tersalin' : 'Salin' }}
+            <ul v-if="phones.length" class="mt-3 divide-y divide-line">
+                <li v-for="p in phones" :key="p.id" class="flex min-h-14 items-center justify-between gap-3">
+                    <span class="text-lg text-ink">{{ p.phone }} <span v-if="p.label" class="text-ink-soft">· {{ p.label }}</span></span>
+                    <button type="button" class="pressable flex min-h-12 items-center gap-1 rounded-xl px-3 text-base font-bold text-danger hover:bg-danger/10" @click="removePhone(p)">
+                        <Trash2 :size="18" aria-hidden="true" /> Lepas
                     </button>
-                </div>
-                <p class="mt-2 text-xs text-ink-soft">
-                    Tempelkan tautan ini di dashboard Fonnte.com pada menu <strong>Device &gt; Webhook URL</strong>.
-                </p>
-            </div>
-        </div>
+                </li>
+            </ul>
 
-        <!-- Authorized Phones List -->
-        <div class="card p-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h3 class="text-xl font-extrabold text-ink">Nomor WhatsApp yang Diizinkan</h3>
-                    <p class="text-sm text-ink-soft">
-                        Hanya nomor yang terdaftar di bawah ini yang dapat menerima balasan data keuangan toko via WhatsApp demi keamanan privasi.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Form Tambah Nomor -->
-            <form class="mt-6 flex flex-wrap gap-3" @submit.prevent="submitPhone">
-                <input
-                    v-model="phoneForm.phone"
-                    type="text"
-                    placeholder="Contoh: 081234567890"
-                    class="min-h-12 w-full flex-1 rounded-xl border border-line bg-surface-2 px-4 text-base text-ink focus:border-primary focus:bg-surface focus:outline-none sm:w-auto"
-                    required
-                />
-                <input
-                    v-model="phoneForm.label"
-                    type="text"
-                    placeholder="Label (Contoh: Pak Budi - Owner)"
-                    class="min-h-12 w-full flex-1 rounded-xl border border-line bg-surface-2 px-4 text-base text-ink focus:border-primary focus:bg-surface focus:outline-none sm:w-auto"
-                />
-                <BigButton type="submit" :loading="phoneForm.processing" class="min-h-12">
-                    <Plus :size="18" /> Tambah Nomor
-                </BigButton>
+            <form v-if="phones.length < maxPhones" class="mt-4 grid gap-3 sm:grid-cols-2" @submit.prevent="addPhone">
+                <BigInput v-model="phoneForm.phone" label="Nomor WhatsApp" inputmode="tel" placeholder="0812 3456 7890" :error="phoneForm.errors.phone" />
+                <BigInput v-model="phoneForm.label" label="Nama" optional placeholder="Contoh: Bapak" :error="phoneForm.errors.label" />
+                <BigButton type="submit" class="sm:col-span-2" :disabled="phoneForm.processing">Daftarkan Nomor</BigButton>
             </form>
-
-            <!-- Tabel / List Nomor -->
-            <div class="mt-6 divide-y divide-line">
-                <div v-if="phones.length === 0" class="py-6 text-center text-ink-soft">
-                    Belum ada nomor WhatsApp yang didaftarkan.
-                </div>
-                <div
-                    v-for="p in phones"
-                    :key="p.id"
-                    class="flex items-center justify-between py-3"
-                >
-                    <div class="flex items-center gap-3">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
-                            <Phone :size="20" />
-                        </div>
-                        <div>
-                            <p class="font-bold text-ink">+{{ p.phone_number }}</p>
-                            <p class="text-sm text-ink-soft">{{ p.label || 'Tanpa label' }}</p>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        class="pressable flex size-10 items-center justify-center rounded-xl text-danger-ink hover:bg-danger-soft"
-                        aria-label="Hapus nomor"
-                        @click="deletePhone(p.id)"
-                    >
-                        <Trash2 :size="20" />
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+        </section>
+    </template>
 </template>

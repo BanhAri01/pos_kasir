@@ -49,7 +49,7 @@ export function useNavigation() {
 
     const settings = computed(() =>
         [
-            { key: 'assistant', label: 'Asisten Toko (AI)', description: 'Tanya omzet, stok & untung lewat aplikasi atau WA', href: route('assistant.index'), icon: Sparkles, match: ['assistant.*'], show: can('view_reports') },
+            { key: 'assistant', label: 'Asisten Toko', description: 'Tanya omzet, stok & untung lewat aplikasi atau WA', href: route('assistant.index'), icon: Sparkles, match: ['assistant.*'], show: can('view_reports') },
             { key: 'customers', label: 'Pelanggan', description: 'Data & riwayat belanja pelanggan', href: route('customers.index'), icon: UserRound, match: ['customers.*'], show: can('manage_customers') },
             { key: 'staff', label: 'Karyawan', description: 'Tambah karyawan dan atur PIN', href: route('staff.index'), icon: Users, match: ['staff.*'], show: can('manage_staff') },
             { key: 'outlets', label: 'Outlet / Cabang', description: 'Tempat usaha, pajak, dan struk', href: route('outlets.index'), icon: Store, match: ['outlets.*'], show: can('manage_outlets') },

@@ -90,7 +90,7 @@ class WarehouseDepositController extends Controller
                 'nearest_due' => $date($nearestDueDate),
                 'is_overdue' => $isOverdue,
                 'bill_url' => $this->bills->billUrl($c),
-                'wa_billing_url' => $this->bills->waBillingUrl($c),
+                'wa_billing_url' => $c->phone ? route('warehouse.deposits.wa-link', $c) : null,
                 'recent_deposits' => $c->deposits->map(fn (CustomerDeposit $d) => [
                     'id' => $d->id,
                     'type' => $d->type,
@@ -250,6 +250,15 @@ class WarehouseDepositController extends Controller
         }
 
         return back()->with('error', 'Gagal mengirim pesan tagihan ke WhatsApp. Pastikan fitur WhatsApp aktif.');
+    }
+
+    /** Pesan tagihan dibuat saat tombol ditekan, bukan untuk semua pelanggan saat daftar dibuka. */
+    public function waLink(Customer $customer): RedirectResponse
+    {
+        $url = $this->bills->waBillingUrl($customer);
+        abort_if($url === null, 404);
+
+        return redirect()->away($url);
     }
 
     public function history(Customer $customer): JsonResponse

@@ -2,36 +2,23 @@
 
 namespace App\Modules\Assistant\Models;
 
-use App\Models\Tenant;
+use App\Core\Tenancy\BelongsToTenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AssistantMessage extends Model
 {
-    protected $table = 'assistant_messages';
+    use BelongsToTenant;
 
     protected $fillable = [
-        'tenant_id',
-        'user_id',
-        'sender_type',
-        'channel',
-        'sender_phone',
-        'message',
-        'tools_called',
-        'tokens_used',
-        'cost_idr',
+        'user_id', 'channel', 'phone', 'role', 'mode', 'status', 'content', 'model',
+        'input_tokens', 'output_tokens', 'cache_read_tokens', 'cache_write_tokens', 'cost', 'external_id',
     ];
 
-    protected $casts = [
-        'tools_called' => 'array',
-        'tokens_used' => 'integer',
-        'cost_idr' => 'decimal:2',
-    ];
-
-    public function tenant(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(Tenant::class);
+        return ['cost' => 'float'];
     }
 
     public function user(): BelongsTo
