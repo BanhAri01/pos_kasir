@@ -4,19 +4,21 @@ namespace App\Modules\Sync\Services;
 
 use App\Core\Support\Phone;
 use App\Core\Support\Qty;
+use App\Core\Support\Rupiah;
 use App\Core\Tenancy\TenantContext;
+use App\Enums\Permission;
 use App\Models\Device;
 use App\Models\User;
 use App\Modules\Customer\Models\Customer;
 use App\Modules\Customer\Services\CustomerService;
+use App\Modules\Inventory\Models\Stock;
 use App\Modules\Operations\Services\KitchenService;
 use App\Modules\Operations\Services\ReceivableService;
-use App\Modules\Pos\Support\SaleRules;
-use App\Modules\Inventory\Models\Stock;
 use App\Modules\Pos\Models\Sale;
 use App\Modules\Pos\Models\Shift;
 use App\Modules\Pos\Services\SaleService;
 use App\Modules\Pos\Services\ShiftService;
+use App\Modules\Pos\Support\SaleRules;
 use App\Modules\Sync\Models\SyncBatch;
 use App\Modules\Sync\Models\SyncConflict;
 use Illuminate\Support\Facades\Log;
@@ -141,6 +143,7 @@ class SyncService
 
         if (! $existed) {
             $this->flagNegativeStock($sale, $device);
+            $this->flagPriceChanges($sale, $user, $device);
         }
 
         return ['uuid' => $sale->uuid, 'number' => $sale->number, 'receipt_url' => $sale->receiptUrl()];
@@ -223,6 +226,31 @@ class SyncService
                 'message' => "Stok {$stock->product?->name} minus ".Qty::display($stock->qty).' setelah penjualan offline (nota '.$sale->number.'). Cek & hitung ulang stoknya.',
                 'payload' => ['product_id' => $stock->product_id, 'qty' => $stock->qty],
             ]));
+    }
+
+    private function flagPriceChanges(Sale $sale, User $user, ?Device $device): void
+    {
+        if ($user->can(Permission::ChangePrice->value)) {
+            return;
+        }
+
+        $changes = $sale->items()->with('product:id,name,pricing_mode')->get()
+            ->filter(fn ($item) => $item->product?->pricing_mode === 'fixed' && $item->unit_price !== $item->original_price)
+            ->map(fn ($item) => "{$item->product->name} ".Rupiah::format($item->original_price).' → '.Rupiah::format($item->unit_price));
+
+        if ($changes->isEmpty()) {
+            return;
+        }
+
+        SyncConflict::create([
+            'device_id' => $device?->id,
+            'outlet_id' => $sale->outlet_id,
+            'type' => 'price_changed',
+            'entity_type' => 'sale',
+            'entity_uuid' => $sale->uuid,
+            'message' => "{$user->name} mengubah harga saat kasir offline tanpa izin (nota {$sale->number}): ".$changes->implode(', ').'. Cek uang kasir dan tanyakan alasannya.',
+            'payload' => ['user_id' => $user->id, 'changes' => $changes->values()->all()],
+        ]);
     }
 
     private function conflict(?Device $device, string $type, array $item, string $message): void

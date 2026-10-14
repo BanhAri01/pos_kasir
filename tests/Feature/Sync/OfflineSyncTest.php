@@ -148,3 +148,39 @@ it('sinkronisasi butuh login dan izin kasir', function () {
     $staff = addStaff($this->owner, 'karyawan', '2222');
     $this->actingAs($staff)->postJson(route('pos.api.sync'), ['items' => offlineQueue($this)['items']])->assertForbidden();
 });
+
+function offlineSaleAt(int $price, $test): array
+{
+    $shiftUuid = (string) Str::uuid();
+
+    return [
+        ['id' => 1, 'type' => 'shift.open', 'payload' => ['uuid' => $shiftUuid, 'outlet_id' => $test->outletId, 'opening_cash' => 0]],
+        ['id' => 2, 'type' => 'sale', 'payload' => salePayload($shiftUuid, [
+            ['product_id' => $test->beras->id, 'qty' => 2, 'unit_price' => $price],
+        ], [['payment_method_id' => $test->cash->id, 'amount' => $price * 2]])],
+    ];
+}
+
+it('kasir tanpa izin ubah harga yang mengirim harga lain lewat sinkronisasi masuk daftar "Perlu Dicek"', function () {
+    $this->actingAs($this->kasir)->postJson(route('pos.api.sync'), ['items' => offlineSaleAt(1000, $this)])
+        ->assertOk()
+        ->assertJsonPath('results.1.status', 'ok');
+
+    $sale = asTenant($this->tenant, fn () => Sale::first());
+    $conflict = asTenant($this->tenant, fn () => SyncConflict::where('type', 'price_changed')->first());
+
+    expect($conflict)->not->toBeNull()
+        ->and($conflict->entity_uuid)->toBe($sale->uuid)
+        ->and($conflict->outlet_id)->toBe($this->outletId)
+        ->and($conflict->message)->toContain($sale->number)
+        ->and($conflict->message)->toContain($this->kasir->name)
+        ->and($conflict->message)->toContain('Beras Premium 5 kg');
+});
+
+it('harga normal atau pemilik yang berhak ubah harga tidak memicu "Perlu Dicek"', function () {
+    $this->actingAs($this->kasir)->postJson(route('pos.api.sync'), ['items' => offlineSaleAt(72000, $this)])->assertOk();
+    $this->actingAs($this->owner)->postJson(route('pos.api.sync'), ['items' => offlineSaleAt(1000, $this)])->assertOk();
+
+    expect(asTenant($this->tenant, fn () => Sale::count()))->toBe(2)
+        ->and(asTenant($this->tenant, fn () => SyncConflict::where('type', 'price_changed')->count()))->toBe(0);
+});
