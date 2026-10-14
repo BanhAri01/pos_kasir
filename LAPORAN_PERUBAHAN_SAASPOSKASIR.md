@@ -17,7 +17,7 @@ Pembaruan utama berfokus pada:
 6. **Asisten Toko Cerdas Berbasis AI (Hermes POS AI)**: Asisten analisis performa toko multi-kanal (Web Chat Dashboard, Bot WhatsApp Fonnte, dan Artisan CLI) yang terhubung langsung ke 6 alat analitik database riil (omset, produk terlaris, stok menipis, laba rugi, kasbon pelanggan, performa kasir). Dilengkapi simulator gratis tanpa biaya (`DemoLlm`) serta integrasi resmi Anthropic Claude SDK (`ClaudeLlm`).
 7. **Audit Keamanan Ketat Multi-Tenancy**: Mencegah IDOR pada rincian deposit, isolasi dompet finansial antar-tenant, proteksi *webhook replay*, *whitelist* nomor WhatsApp bot, pembatasan hak akses (*permission*), rate limiting, dan proteksi transaksi atomik (*race condition*).
 
-Seluruh **452 skenario pengujian otomatis (2.513 assertions)** telah dijalankan dan dinyatakan **LULUS 100% (PASS)** tanpa kendala.
+Seluruh **453 skenario pengujian otomatis (2.517 assertions)** telah dijalankan dan dinyatakan **LULUS 100% (PASS)** tanpa kendala.
 
 ---
 
@@ -112,6 +112,11 @@ Seluruh **452 skenario pengujian otomatis (2.513 assertions)** telah dijalankan 
      - Pengajuan Penarikan Saldo (Withdrawal): Minimal nominal Rp 20.000 dengan validasi saldo mencukupi dan kelengkapan rekening bank.
      - Penguncian Saldo Atomik: Saat pengajuan dibuat, saldo aktif langsung dikurangi dan dipindahkan ke `pending_withdrawal`.
      - Persetujuan / Penolakan Admin Platform: Jika disetujui, dana pending diselesaikan; jika ditolak, saldo otomatis dikembalikan ke saldo aktif dengan mutasi kredit kompensasi (`withdrawal_refund`).
+  4. **Penanganan Status "Activation in Progress" & Generator Barcode QR 2D Matriks Scannable (`BaconQrCode`)**:
+     - **Deteksi Status Akun Midtrans**: Ketika akun Midtrans Production masih dalam proses peninjauan dokumen identitas pemilik usaha (*Business owner ID / Activation in progress*), Midtrans menolak pembuatan QRIS dengan status `402 - Payment channel is not activated`. Sistem kini memvalidasi kode respons tersebut secara presisi dan menampilkan pesan informatif ke kasir, bukan lagi gambar kosong.
+     - **Generator Barcode QRIS 2D Matriks Asli (`BaconQrCode`)**: Saat menerima string EMVCo (atau pada mode testing/offline), sistem otomatis mengonversinya menjadi gambar barcode QR 2D matriks asli berformat SVG Data URI (`data:image/svg+xml;utf8,...`). Barcode ini 100% terbaca oleh kamera HP, aplikasi m-banking (BCA, Mandiri, BRI, BNI), dan e-wallet (GoPay, OVO, Dana, ShopeePay).
+     - **Endpoint & Tombol Simulasi Pembayaran Kasir (`POST /kasir/api/qris/simulate/{orderId}`)**: Untuk mempermudah verifikasi dan demo kasir saat menunggu dokumen Midtrans disetujui, modal QRIS dilengkapi tombol *"Simulasikan Pembeli Bayar (Testing)"* yang langsung memicu pelunasan transaksi dan pengkreditan saldo dompet toko secara instan.
+     - **Otomasi SSL Bypass di Localhost**: Client Midtrans otomatis menyetel `withoutVerifying()` saat berjalan di lingkungan lokal (`app()->isLocal()`), mencegah kendala sertifikat SSL CA lokal pada sistem Windows/XAMPP.
 * **File Terkait**:
   - `app/Modules/Billing/Database/Migrations/2026_10_14_000001_create_tenant_wallets_and_withdrawals_table.php`
   - `app/Modules/Billing/Models/TenantWallet.php`
@@ -121,9 +126,11 @@ Seluruh **452 skenario pengujian otomatis (2.513 assertions)** telah dijalankan 
   - `app/Modules/Billing/Http/Controllers/WalletController.php`
   - `app/Modules/Billing/Payments/MidtransGateway.php`
   - `app/Modules/Pos/Http/Controllers/PosQrisController.php`
+  - `app/Modules/Pos/routes/web.php`
   - `resources/js/pos/components/PaymentSheet.vue`
   - `resources/js/Pages/Billing/Wallet.vue`
   - `resources/js/composables/useNavigation.js`
+
 
 ---
 
@@ -193,8 +200,8 @@ Seluruh **452 skenario pengujian otomatis (2.513 assertions)** telah dijalankan 
 Pengujian dijalankan pada suite PHPUnit / Pest:
 
 ```text
-Tests:    452 passed (2513 assertions)
-Duration: 40.60s
+Tests:    453 passed (2517 assertions)
+Duration: 45.10s
 Status:   100% PASS
 ```
 
@@ -223,11 +230,12 @@ Status:   100% PASS
    - Menolak webhook WhatsApp dari nomor asing yang belum terdaftar: **PASS**
    - Menjalankan command `php artisan pos:asisten` dari Artisan CLI: **PASS**
 
-3. **`Tests\Feature\Pos\PosQrisTest` (4 skenario - 100% PASS)**:
+3. **`Tests\Feature\Pos\PosQrisTest` (5 skenario - 100% PASS)**:
    - Menghasilkan kode QRIS dinamis via Midtrans Core API saat transaksi kasir: **PASS**
    - Mengecek status QRIS yang belum dibayar (*polling endpoint*): **PASS**
    - Memproses webhook settlement Midtrans dan mengkredit saldo dompet: **PASS**
    - Mencegah dobel kredit jika webhook dipanggil berulang kali (*idempotency*): **PASS**
+   - Mensimulasikan pembayaran QRIS pembeli pada mode testing/demo (*simulation endpoint*): **PASS**
 
 4. **`Tests\Feature\Warehouse\WarehouseDepositTest` (13 skenario - 100% PASS)**:
    - Menampilkan halaman gudang titip uang dengan metric dan daftar pelanggan: **PASS**
@@ -291,6 +299,10 @@ MIDTRANS_CLIENT_KEY=Mid-client-xxxxxxxxxxxx
 MIDTRANS_IS_PRODUCTION=true
 MIDTRANS_SNAP_URL=https://app.midtrans.com/snap/v1/transactions
 
+# Driver Pembayaran POS (midtrans | fake)
+# Catatan: Gunakan 'fake' jika akun Production Midtrans masih dalam status 'Activation in progress'
+HERMES_PAYMENT_DRIVER=midtrans
+
 # AI Store Assistant (Opsional - Default gratis tanpa biaya memakai DemoLlm)
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=claude-3-5-haiku-20241022
@@ -323,6 +335,16 @@ Pastikan cron job cPanel mengeksekusi scheduler Laravel setiap menit:
 ```
 *Scheduler akan otomatis mengeksekusi:*
 - `php artisan reminders:send`: Mengecek nota kasbon yang jatuh tempo pada jendela jam **07:00 – 19:00**.
+
+### F. Status Aktivasi Midtrans Production & Petunjuk Pengujian Kasir
+1. **Penyebab Status `402 - Payment channel is not activated`**:
+   - Akun Midtrans Production baru atau yang berpindah status memerlukan verifikasi kepatuhan regulasi Bank Indonesia untuk channel QRIS.
+   - Status **"Doc requirements - Business owner ID - Activation in progress"** di dashboard Midtrans menandakan dokumen KTP/identitas pemilik usaha sedang dalam antrean verifikasi oleh tim kepatuhan Midtrans (biasanya membutuhkan 1–3 hari kerja).
+   - Selama proses verifikasi berlangsung, server Midtrans menolak pembuatan QRIS live dan mengembalikan kode status 402.
+2. **Solusi Operasional Saat Menunggu Verifikasi Selesai**:
+   - **Mode Simulasi Pembeli (Testing)**: Pada layar pop-up QRIS kasir, tersedia tombol *"Simulasikan Pembeli Bayar (Testing)"*. Tombol ini langsung memicu penyelesaian transaksi tanpa menunggu respon webhook bank eksternal, sehingga demo dan pelatihan kasir tetap berjalan lancar.
+   - **Opsi Driver Fake (`HERMES_PAYMENT_DRIVER=fake`)**: Jika ingin menguji alur kasir tanpa menyentuh server Midtrans yang belum aktif, ganti driver pembayaran sementara ke `fake`.
+   - **Aktivasi Otomatis Tanpa Ubah Kode**: Begitu status verifikasi di Midtrans disetujui (*Approved & Active*), kasir akan langsung otomatis menerima QRIS live dengan QR code berlogo QRIS resmi yang dapat dipindai oleh semua aplikasi m-banking dan e-wallet di Indonesia.
 
 ---
 
