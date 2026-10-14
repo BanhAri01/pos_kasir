@@ -91,8 +91,9 @@ return [
     ],
 
     'payment' => [
-        'driver' => env('HERMES_PAYMENT_DRIVER'),
+        'driver' => env('HERMES_PAYMENT_DRIVER', env('PAYMENT_DRIVER', 'midtrans')),
         'expiry_minutes' => (int) env('HERMES_PAYMENT_EXPIRY_MINUTES', 60),
+
         'midtrans' => [
             'server_key' => env('MIDTRANS_SERVER_KEY'),
             'client_key' => env('MIDTRANS_CLIENT_KEY'),
