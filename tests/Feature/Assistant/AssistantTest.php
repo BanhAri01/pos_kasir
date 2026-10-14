@@ -194,3 +194,14 @@ it('semua alat bisa dijalankan dan outlet asing ditolak', function () {
     expect(fn () => asTenant($this->tenant, fn () => $tools->run('ringkasan_penjualan', ['outlet' => 'Cabang Tidak Ada'])))
         ->toThrow(InvalidArgumentException::class);
 });
+
+it('memberi peringatan sekali saat pulsa terpakai 80%', function () {
+    config(['hermes.assistant.trial_budget' => 1000, 'hermes.assistant.budget' => 1000]);
+    asTenant($this->tenant, fn () => AssistantMessage::create(['channel' => 'web', 'role' => 'assistant', 'content' => 'x', 'cost' => 790]));
+
+    $first = $this->actingAs($this->owner)->postJson(route('assistant.ask'), ['question' => 'Penjualan hari ini?'])->json('text');
+    $second = $this->actingAs($this->owner)->postJson(route('assistant.ask'), ['question' => 'Penjualan hari ini?'])->json('text');
+
+    expect($first)->toContain('Pulsa Asisten tinggal 19%')
+        ->and($second)->not->toContain('Pulsa Asisten tinggal');
+});
