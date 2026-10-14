@@ -13,6 +13,7 @@ import AppLogo from '@/Components/ui/AppLogo.vue';
 import BottomNav from '@/Components/ui/BottomNav.vue';
 import FlashMessages from '@/Components/ui/FlashMessages.vue';
 import OfflineBanner from '@/Components/ui/OfflineBanner.vue';
+import WhatsAppDownBanner from '@/Components/ui/WhatsAppDownBanner.vue';
 import OutletSwitcher from '@/Components/ui/OutletSwitcher.vue';
 import SideNav from '@/Components/ui/SideNav.vue';
 
@@ -78,6 +79,7 @@ const chip = computed(() => {
             </header>
 
             <OfflineBanner />
+            <WhatsAppDownBanner />
         </div>
 
         <main class="mx-auto max-w-3xl px-4 pt-6 pb-nav sm:px-6 lg:max-w-5xl lg:px-8 lg:pt-8 lg:pb-12">

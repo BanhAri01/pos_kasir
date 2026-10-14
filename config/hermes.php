@@ -19,6 +19,9 @@ return [
             'domain' => env('HERMES_WA_DOMAIN'),
             'phone_number_id' => env('HERMES_WA_PHONE_NUMBER_ID'),
         ],
+        'fonnte_device_url' => env('FONNTE_DEVICE_URL', 'https://api.fonnte.com/device'),
+        // Email penerima peringatan bila nomor WhatsApp milik platform terputus.
+        'alert_email' => env('HERMES_ALERT_EMAIL', 'idewamadearisantika@gmail.com'),
     ],
 
     // Batas salah PIN / kata sandi sebelum harus menunggu.

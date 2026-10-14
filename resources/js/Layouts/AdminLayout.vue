@@ -3,6 +3,7 @@ import { Link, router } from '@inertiajs/vue3';
 import { LogOut } from 'lucide-vue-next';
 import AppLogo from '@/Components/ui/AppLogo.vue';
 import FlashMessages from '@/Components/ui/FlashMessages.vue';
+import WhatsAppDownBanner from '@/Components/ui/WhatsAppDownBanner.vue';
 </script>
 
 <template>
@@ -17,6 +18,7 @@ import FlashMessages from '@/Components/ui/FlashMessages.vue';
                     <LogOut :size="22" aria-hidden="true" /> Keluar
                 </button>
             </div>
+            <WhatsAppDownBanner />
         </header>
         <main class="mx-auto max-w-5xl px-4 pt-6 pb-12 sm:px-6">
             <FlashMessages />

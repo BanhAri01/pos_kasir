@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Core\Tenancy\CurrentOutlet;
 use App\Core\Tenancy\TenantContext;
 use App\Modules\Auth\Services\RegisterTenantService;
+use App\Modules\WhatsApp\Services\WhatsAppHealth;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -72,6 +73,7 @@ class HandleInertiaRequests extends Middleware
             'adminWhatsapp' => config('hermes.admin_whatsapp'),
             'impersonating' => $request->hasSession() && $request->session()->has('impersonator_id'),
             'isSuperAdmin' => (bool) $user?->is_super_admin,
+            'waNotices' => fn () => app(WhatsAppHealth::class)->noticesFor($user, $tenant),
             'isLocal' => app()->environment('local'),
         ];
     }

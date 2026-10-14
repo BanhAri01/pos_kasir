@@ -2,7 +2,9 @@
 
 namespace App\Modules\WhatsApp\Models;
 
+use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** Akun pengirim WhatsApp (null tenant = nomor milik platform). */
 class WhatsappAccount extends Model
@@ -15,5 +17,10 @@ class WhatsappAccount extends Model
             'credentials' => 'encrypted:array',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 }

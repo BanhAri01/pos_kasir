@@ -3,6 +3,7 @@
 namespace App\Modules\WhatsApp\Drivers;
 
 use App\Modules\WhatsApp\Contracts\WhatsAppGateway;
+use App\Modules\WhatsApp\Services\WhatsAppHealth;
 use App\Modules\WhatsApp\Support\SendResult;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -21,9 +22,13 @@ class FonnteDriver implements WhatsAppGateway
 
             $json = $response->json() ?? [];
 
-            return $response->successful() && ($json['status'] ?? false)
+            $result = $response->successful() && ($json['status'] ?? false)
                 ? SendResult::ok(is_array($json['id'] ?? null) ? (string) ($json['id'][0] ?? '') : (string) ($json['id'] ?? ''))
                 : SendResult::failed((string) ($json['reason'] ?? $json['detail'] ?? 'Fonnte menolak pesan.'));
+
+            app(WhatsAppHealth::class)->report($this->token, $result);
+
+            return $result;
         } catch (Throwable $e) {
             return SendResult::failed('Tidak bisa menghubungi Fonnte: '.$e->getMessage());
         }
