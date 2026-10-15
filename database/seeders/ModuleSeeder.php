@@ -88,6 +88,10 @@ class ModuleSeeder extends Seeder
         ['code' => 'batch_lot', 'name' => 'Nomor Batch & Kedaluwarsa', 'icon' => 'calendar-clock',
             'description' => 'Catat nomor batch, tanggal kedaluwarsa, dan kadar air. Barang lama keluar duluan.'],
 
+        // ---- Pengepul telur ----
+        ['code' => 'egg_collector', 'name' => 'Sortir & Harga Telur Harian', 'icon' => 'egg',
+            'description' => 'Isi harga telur hari ini, sortir telur campur jadi besar/kecil/retak, modal dan susut terhitung otomatis.'],
+
         // ---- Toko baju (Fase 11) ----
         ['code' => 'variant_matrix', 'name' => 'Varian Ukuran & Warna', 'icon' => 'grid',
             'description' => 'Satu model punya banyak ukuran dan warna, masing-masing dengan stok dan barcode sendiri.'],

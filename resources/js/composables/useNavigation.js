@@ -2,7 +2,7 @@ import { computed } from 'vue';
 import {
     Armchair, Bike, Boxes, Calculator, CalendarDays, ChefHat, CreditCard, HandCoins, House, IdCard, LayoutGrid, ListChecks, ListOrdered,
     MessageCircle, NotebookPen, Package, Palette, ReceiptText, SlidersHorizontal, Store, Tags, Truck, UserRound, Users, Wallet, ChartColumn,
-    BadgePercent, CalendarClock, Crown, Gift, QrCode, ShoppingBag, PackageSearch, Share2, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse, Sparkles,
+    BadgePercent, CalendarClock, Crown, Gift, QrCode, ShoppingBag, PackageSearch, Share2, ClipboardList, Grid3x3, Handshake, MapPin, Printer, TrendingDown, Warehouse, Sparkles, Egg, Layers,
 } from 'lucide-vue-next';
 import { useAuth } from './useAuth';
 
@@ -17,7 +17,7 @@ import { useAuth } from './useAuth';
 export function useNavigation() {
     const { can, hasModule } = useAuth();
 
-    const businessRoutes = ['expenses.*', 'kitchen.*', 'queue.*', 'bookings.*', 'orders.*', 'members.*', 'receivables.*', 'deliveries.*', 'purchases.*', 'suppliers.*', 'commissions.*', 'tables.*', 'modifiers.*', 'price-levels.*', 'settings.whatsapp*', 'warehouse.*', 'promotions.*', 'labels.*'];
+    const businessRoutes = ['expenses.*', 'kitchen.*', 'queue.*', 'bookings.*', 'orders.*', 'members.*', 'receivables.*', 'deliveries.*', 'purchases.*', 'suppliers.*', 'commissions.*', 'tables.*', 'modifiers.*', 'price-levels.*', 'settings.whatsapp*', 'warehouse.*', 'promotions.*', 'labels.*', 'egg.*'];
 
     const main = computed(() =>
         [
@@ -73,6 +73,8 @@ export function useNavigation() {
             { key: 'orders', label: 'Status Pesanan', description: 'Cucian / pesanan: proses sampai diambil', href: route('orders.index'), icon: ListChecks, match: ['orders.*'], show: hasModule('order_status') && can('use_pos') },
             { key: 'members', label: 'Member', description: 'Paket member & absen masuk', href: route('members.index'), icon: IdCard, match: ['members.*'], show: hasModule('membership') && can('use_pos') },
             { key: 'receivables', label: 'Kasbon / Utang', description: 'Siapa yang masih berutang', href: route('receivables.index'), icon: NotebookPen, match: ['receivables.*'], show: hasModule('kasbon') && can('manage_customers') },
+            { key: 'egg-prices', label: 'Harga Telur Hari Ini', description: 'Harga beli & jual telur hari ini', href: route('egg.prices'), icon: Egg, match: ['egg.prices', 'egg.types'], show: hasModule('egg_collector') && can('manage_products') },
+            { key: 'egg-sorting', label: 'Sortir Telur', description: 'Telur campur jadi besar, kecil, retak', href: route('egg.sortings.create'), icon: Layers, match: ['egg.sortings.*'], show: hasModule('egg_collector') && (can('manage_stock') || can('use_pos')) },
             { key: 'deliveries', label: 'Pengiriman', description: 'Antar barang & surat jalan', href: route('deliveries.index'), icon: Bike, match: ['deliveries.*'], show: hasModule('delivery') && can('use_pos') },
             {
                 key: 'warehouse', label: 'Beranda Gudang', description: 'Terima, olah, kemas, cek stok semua gudang', href: route('warehouse.dashboard'), icon: Warehouse,

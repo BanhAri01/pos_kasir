@@ -167,6 +167,22 @@ return [
         ],
     ],
 
+    'pengepul_telur' => [
+        'categories' => ['Telur'],
+        'price_levels' => ['Langganan'],
+        'products' => [
+            ['Telur Campur', 'Telur', 26000, 24000, 'Kg', 100, 'goods', null, 'per_weight'],
+            ['Telur Besar', 'Telur', 28000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
+            ['Telur Kecil', 'Telur', 25000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
+            ['Telur Retak', 'Telur', 20000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
+        ],
+        // Telur campur disortir menjadi jenis-jenis berikut (modul egg_collector)
+        'egg_products' => [
+            'mixed' => ['Telur Campur'],
+            'grades' => ['Telur Besar', 'Telur Kecil', 'Telur Retak'],
+        ],
+    ],
+
     'toko_baju' => [
         'categories' => ['Kaos', 'Kemeja', 'Celana', 'Aksesoris'],
         'price_levels' => ['Reseller'],

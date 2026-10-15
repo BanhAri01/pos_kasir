@@ -9,6 +9,7 @@ use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\PriceLevel;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Models\Unit;
+use App\Modules\EggCollector\Models\EggProduct;
 use App\Modules\Inventory\Services\StockService;
 use App\Modules\Pos\Models\PaymentMethod;
 use App\Modules\Warehouse\Services\ProductionService;
@@ -101,6 +102,11 @@ class SampleDataService
                 }
 
                 $products = Product::query()->where('is_sample', true)->pluck('id', 'name');
+                foreach (['mixed' => 'mixed', 'grades' => 'grade'] as $key => $role) {
+                    foreach ($template['egg_products'][$key] ?? [] as $i => $name) {
+                        EggProduct::create(['product_id' => $products[$name], 'role' => $role, 'sort_order' => $i]);
+                    }
+                }
                 foreach ($template['formulas'] ?? [] as [$kind, $formulaName, $output, $outputQty, $items]) {
                     app(ProductionService::class)->saveFormula([
                         'kind' => $kind,

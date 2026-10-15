@@ -32,6 +32,8 @@ class StockMovement extends Model
         'recipe_usage' => 'Dipakai untuk resep',
         'production_out' => 'Dipakai untuk olah / kemas',
         'production_in' => 'Hasil olah / kemas',
+        'sorting_out' => 'Disortir',
+        'sorting_in' => 'Hasil sortir telur',
     ];
 
     protected $fillable = [
