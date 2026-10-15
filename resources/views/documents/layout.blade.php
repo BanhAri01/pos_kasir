@@ -1,6 +1,7 @@
 @php
     $paper = $paper ?? 'a4';
-    $continuous = $paper === 'kontinyu';
+    $continuous = in_array($paper, ['kontinyu', 'tinta'], true);
+    $paperWidth = $paper === 'tinta' ? '8.5in' : '9.5in';
     $paperLinks = request()->routeIs('sales.invoice', 'deliveries.print');
 @endphp
 <!DOCTYPE html>
@@ -45,8 +46,8 @@
         }
         @if($continuous)
         body { font: 12.5px/1.4 'Courier New', Courier, monospace; color: #000; }
-        .sheet { max-width: 9.5in; min-height: 11in; padding: .35in .4in; }
-        .actions { max-width: 9.5in; }
+        .sheet { max-width: {{ $paperWidth }}; min-height: 11in; padding: .35in .4in; }
+        .actions { max-width: {{ $paperWidth }}; }
         .head { border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; }
         .brand { font-size: 17px; }
         .doc-title { font-size: 18px; color: #000; }
@@ -60,7 +61,7 @@
         .sign div { padding-top: 44px; border-bottom: 1px dashed #000; }
         @media (max-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
         @media print {
-            @page { size: 9.5in 11in; margin: .25in .3in; }
+            @page { size: {{ $paperWidth }} 11in; margin: .25in .3in; }
             .sheet { padding: 0; min-height: 0; }
         }
         @endif

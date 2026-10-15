@@ -10,6 +10,7 @@ class DocumentPaper
     public const SIZES = [
         'a4' => 'A4',
         'kontinyu' => 'Kontinyu 9,5 x 11 inci',
+        'tinta' => 'Kontinyu printer tinta 8,5 x 11 inci',
     ];
 
     public static function resolve(Request $request, ?Outlet $outlet): string

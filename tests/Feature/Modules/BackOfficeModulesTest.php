@@ -275,6 +275,9 @@ describe('pengiriman & faktur', function () {
         $this->actingAs($owner)->get(route('deliveries.print', $delivery->uuid))->assertDontSee('size: 9.5in 11in', false);
         asTenant($owner->tenant, fn () => $sale->outlet->update(['document_paper' => 'kontinyu']));
         $this->actingAs($owner)->get(route('deliveries.print', $delivery->uuid))->assertSee('size: 9.5in 11in', false);
+        $this->actingAs($owner)->get(route('sales.invoice', ['uuid' => $sale->uuid, 'kertas' => 'tinta']))->assertOk()->assertSee('size: 8.5in 11in', false)->assertDontSee('size: 9.5in 11in', false);
+        asTenant($owner->tenant, fn () => $sale->outlet->update(['document_paper' => 'tinta']));
+        $this->actingAs($owner)->get(route('deliveries.print', $delivery->uuid))->assertSee('size: 8.5in 11in', false);
     });
 });
 

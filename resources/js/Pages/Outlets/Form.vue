@@ -91,7 +91,7 @@ function submit() {
                     </div>
                     <div>
                         <span class="mb-2 block text-lg font-bold text-ink">Kertas faktur & surat jalan</span>
-                        <SegmentedControl v-model="form.document_paper" label="Kertas faktur dan surat jalan" :options="[{ value: 'a4', label: 'A4' }, { value: 'kontinyu', label: 'Kontinyu 9,5 x 11 inci' }]" />
+                        <SegmentedControl v-model="form.document_paper" label="Kertas faktur dan surat jalan" :options="[{ value: 'a4', label: 'A4' }, { value: 'kontinyu', label: 'Kontinyu 9,5 x 11 inci' }, { value: 'tinta', label: 'Kontinyu printer tinta 8,5 x 11 inci' }]" />
                         <span class="mt-2 block text-base text-ink-soft">Pilih kontinyu untuk printer dot matrix (contoh Epson LX-310) dengan kertas berlubang 3 rangkap.</span>
                     </div>
                 </div>

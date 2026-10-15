@@ -1,4 +1,60 @@
 {
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff": {
+    "file": "assets/cinzel-latin-700-normal-C-gK7hA8.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff2": {
+    "file": "assets/cinzel-latin-700-normal-Dkw14w9r.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff2"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff": {
+    "file": "assets/nunito-latin-400-normal-DKg4f3fz.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff2": {
+    "file": "assets/nunito-latin-400-normal-r8SDr6Up.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff2"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff": {
+    "file": "assets/nunito-latin-600-normal-Cd0eNu1l.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff2": {
+    "file": "assets/nunito-latin-600-normal-Br8yIETf.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff2"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff": {
+    "file": "assets/nunito-latin-700-normal-OcDqTBcA.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff2": {
+    "file": "assets/nunito-latin-700-normal-Dort48En.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff2"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff": {
+    "file": "assets/nunito-latin-800-normal-D-J0wlBY.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff2": {
+    "file": "assets/nunito-latin-800-normal-Dz8SOQK_.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff2"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff": {
+    "file": "assets/plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2": {
+    "file": "assets/plus-jakarta-sans-latin-700-normal-CfpNZvy6.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff": {
+    "file": "assets/plus-jakarta-sans-latin-800-normal-BRNHt2w0.woff",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff"
+  },
+  "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2": {
+    "file": "assets/plus-jakarta-sans-latin-800-normal-CusIZhrK.woff2",
+    "src": "../../../xampp/htdocs/2026-10-oktober/2026-10-08/saasposkasir/node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2"
+  },
   "_AdminLayout-Dau3253A.js": {
     "file": "assets/AdminLayout-Dau3253A.js",
     "name": "AdminLayout",
@@ -651,62 +707,6 @@
       "_createLucideIcon-C7u5JVlj.js"
     ]
   },
-  "node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff": {
-    "file": "assets/cinzel-latin-700-normal-C-gK7hA8.woff",
-    "src": "node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff"
-  },
-  "node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff2": {
-    "file": "assets/cinzel-latin-700-normal-Dkw14w9r.woff2",
-    "src": "node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff2"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff": {
-    "file": "assets/nunito-latin-400-normal-DKg4f3fz.woff",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff2": {
-    "file": "assets/nunito-latin-400-normal-r8SDr6Up.woff2",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-400-normal.woff2"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff": {
-    "file": "assets/nunito-latin-600-normal-Cd0eNu1l.woff",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff2": {
-    "file": "assets/nunito-latin-600-normal-Br8yIETf.woff2",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-600-normal.woff2"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff": {
-    "file": "assets/nunito-latin-700-normal-OcDqTBcA.woff",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff2": {
-    "file": "assets/nunito-latin-700-normal-Dort48En.woff2",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff2"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff": {
-    "file": "assets/nunito-latin-800-normal-D-J0wlBY.woff",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff"
-  },
-  "node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff2": {
-    "file": "assets/nunito-latin-800-normal-Dz8SOQK_.woff2",
-    "src": "node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff2"
-  },
-  "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff": {
-    "file": "assets/plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff",
-    "src": "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff"
-  },
-  "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2": {
-    "file": "assets/plus-jakarta-sans-latin-700-normal-CfpNZvy6.woff2",
-    "src": "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2"
-  },
-  "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff": {
-    "file": "assets/plus-jakarta-sans-latin-800-normal-BRNHt2w0.woff",
-    "src": "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff"
-  },
-  "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2": {
-    "file": "assets/plus-jakarta-sans-latin-800-normal-CusIZhrK.woff2",
-    "src": "node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2"
-  },
   "resources/css/app.css": {
     "file": "assets/app-C5fXyx7X.css",
     "src": "resources/css/app.css",
@@ -1231,7 +1231,7 @@
     ]
   },
   "resources/js/Pages/Dashboard.vue": {
-    "file": "assets/Dashboard-DxcHEyNq.js",
+    "file": "assets/Dashboard-Bvgmp7yS.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Dashboard.vue",
     "isDynamicEntry": true,
@@ -1276,7 +1276,7 @@
     ]
   },
   "resources/js/Pages/Dev/Components.vue": {
-    "file": "assets/Components-BXnLSlKi.js",
+    "file": "assets/Components-taboTfgo.js",
     "name": "Components",
     "src": "resources/js/Pages/Dev/Components.vue",
     "isDynamicEntry": true,
@@ -2126,7 +2126,7 @@
     ]
   },
   "resources/js/Pages/Outlets/Form.vue": {
-    "file": "assets/Form-C8oZqtrk.js",
+    "file": "assets/Form-BdrqYX__.js",
     "name": "Form",
     "src": "resources/js/Pages/Outlets/Form.vue",
     "isDynamicEntry": true,
@@ -2945,7 +2945,7 @@
     ]
   },
   "resources/js/Pages/Settings/Display.vue": {
-    "file": "assets/Display-BLN0PX7r.js",
+    "file": "assets/Display-3JzkRsFE.js",
     "name": "Display",
     "src": "resources/js/Pages/Settings/Display.vue",
     "isDynamicEntry": true,
@@ -3998,7 +3998,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-CgL4v8AA.js",
+    "file": "assets/app-BdQaPNJh.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
