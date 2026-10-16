@@ -101,7 +101,7 @@ it('menampilkan utang ke peternak yang lewat jatuh tempo dan piutang pembeli', f
     });
 
     $this->actingAs($this->owner)->get(route('egg.summary'))->assertInertia(fn (Assert $page) => $page
-        ->component('Pengepul/Summary', false)
+        ->component('Pengepul/Summary')
         ->where('payables.total', 1_400_000)
         ->where('payables.suppliers.0.name', 'Pak Wayan')
         ->where('payables.suppliers.0.overdue', true)

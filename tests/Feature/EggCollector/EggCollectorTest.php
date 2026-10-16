@@ -46,7 +46,7 @@ it('harga hari ini langsung dipakai kasir dan menjadi modal acuan belanja', func
         ->and(($this->p)('Telur Besar')->cost_price)->toBe(24000);
 
     $this->actingAs($this->owner)->get(route('egg.prices'))->assertInertia(fn (Assert $page) => $page
-        ->component('Pengepul/Prices', false)
+        ->component('Pengepul/Prices')
         ->where('rows.0.name', 'Telur Campur')
         ->where('rows.0.filled_today', true)
         ->where('rows.0.buy_price', 23500)
@@ -78,7 +78,7 @@ it('sortir membagi modal menurut nilai jual dan mencatat susut sebagai rugi', fu
         ->and(($this->stockOf)('Telur Retak')->qty)->toBe('1.500');
 
     $this->actingAs($this->owner)->get(route('egg.sortings.show', $sorting->uuid))->assertInertia(fn (Assert $page) => $page
-        ->component('Pengepul/SortingShow', false)
+        ->component('Pengepul/SortingShow')
         ->where('sorting.shrinkage_qty', '0,5')
         ->where('sorting.shrinkage_cost', 12_000));
 });
@@ -103,7 +103,7 @@ it('kasir boleh sortir dan kembali ke kasir, tapi tidak boleh mengubah harga', f
     $this->actingAs($kasir)->post(route('egg.sortings.store'), ($this->sortPayload)(['Telur Besar' => '10'], '10') + ['kembali' => 'kasir'])
         ->assertSessionHasNoErrors()->assertRedirect(route('pos.show'));
     $this->actingAs($kasir)->get(route('egg.sortings.create'))->assertInertia(fn (Assert $page) => $page
-        ->component('Pengepul/Sorting', false)->where('can_see_cost', false)->has('grades', 3));
+        ->component('Pengepul/Sorting')->where('can_see_cost', false)->has('grades', 3));
 
     $this->actingAs($kasir)->post(route('egg.prices.store'), ['prices' => [['product_id' => ($this->p)('Telur Besar')->id, 'sell_price' => 1]]])
         ->assertForbidden();
