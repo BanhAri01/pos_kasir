@@ -27,7 +27,7 @@ it('menyiapkan jenis usaha pengepul telur lengkap dengan modul dan jenis telur',
         ->and($this->tenant->hasModule('kasbon'))->toBeTrue();
 
     $roles = asTenant($this->tenant, fn () => EggProduct::with('product')->get()->mapWithKeys(fn ($e) => [$e->product->name => $e->role])->all());
-    expect($roles)->toBe(['Telur Campur' => 'mixed', 'Telur Besar' => 'grade', 'Telur Kecil' => 'grade', 'Telur Retak' => 'grade'])
+    expect($roles)->toBe(['Telur Campur' => 'mixed', 'Telur Super' => 'grade', 'Telur Besar' => 'grade', 'Telur Sedang' => 'grade', 'Telur Kecil' => 'grade', 'Telur Retak' => 'grade'])
         ->and(($this->stockOf)('Telur Campur')->qty)->toBe('100.000');
 });
 
@@ -50,7 +50,7 @@ it('harga hari ini langsung dipakai kasir dan menjadi modal acuan belanja', func
         ->where('rows.0.name', 'Telur Campur')
         ->where('rows.0.filled_today', true)
         ->where('rows.0.buy_price', 23500)
-        ->where('rows.1.sell_price', 29000));
+        ->where('rows.2.sell_price', 29000));
 
     $this->actingAs($this->owner)->post(route('egg.prices.store'), ['prices' => [['product_id' => $besar->id, 'sell_price' => 28500]]])->assertSessionHasNoErrors();
     expect(asTenant($this->tenant, fn () => EggDailyPrice::where('product_id', $besar->id)->count()))->toBe(1)
@@ -103,7 +103,7 @@ it('kasir boleh sortir dan kembali ke kasir, tapi tidak boleh mengubah harga', f
     $this->actingAs($kasir)->post(route('egg.sortings.store'), ($this->sortPayload)(['Telur Besar' => '10'], '10') + ['kembali' => 'kasir'])
         ->assertSessionHasNoErrors()->assertRedirect(route('pos.show'));
     $this->actingAs($kasir)->get(route('egg.sortings.create'))->assertInertia(fn (Assert $page) => $page
-        ->component('Pengepul/Sorting')->where('can_see_cost', false)->has('grades', 3));
+        ->component('Pengepul/Sorting')->where('can_see_cost', false)->has('grades', 5));
 
     $this->actingAs($kasir)->post(route('egg.prices.store'), ['prices' => [['product_id' => ($this->p)('Telur Besar')->id, 'sell_price' => 1]]])
         ->assertForbidden();
@@ -129,7 +129,7 @@ it('data pengepul tidak bisa dibaca atau diubah usaha lain', function () {
     $this->actingAs($other)->get(route('egg.sortings.create'))->assertInertia(fn (Assert $page) => $page->has('recent', 0));
 
     expect(DB::table('product_outlet')->where('product_id', $mine->id)->value('price'))->toBeNull()
-        ->and(asTenant($this->tenant, fn () => EggProduct::count()))->toBe(4);
+        ->and(asTenant($this->tenant, fn () => EggProduct::count()))->toBe(6);
 });
 
 it('usaha tanpa modul pengepul tidak bisa membuka halaman sortir', function () {

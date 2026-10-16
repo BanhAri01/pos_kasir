@@ -12,6 +12,7 @@ Route::middleware(['auth', 'tenant', 'module:egg_collector'])->prefix('pengepul'
         Route::post('harga', [EggPriceController::class, 'store'])->name('prices.store');
         Route::get('jenis-telur', [EggPriceController::class, 'types'])->name('types');
         Route::put('jenis-telur', [EggPriceController::class, 'updateTypes'])->name('types.update');
+        Route::put('satuan', [EggPriceController::class, 'updateUnits'])->name('units.update');
     });
 
     // Ringkasan uang: untung, piutang pembeli, utang ke peternak

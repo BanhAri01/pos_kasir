@@ -30,7 +30,7 @@ class BusinessTypeSeeder extends Seeder
         ['code' => 'pengepul_telur', 'name' => 'Pengepul Telur', 'category' => 'retail',
             'pos_layout' => 'retail', 'icon' => 'egg',
             'description' => 'Beli telur dari peternak, sortir, jual ke toko & pedagang',
-            'modules' => ['egg_collector', 'base_unit_stock', 'weighed_receiving', 'shrinkage', 'supplier_purchase', 'landed_cost',
+            'modules' => ['egg_collector', 'multi_unit', 'base_unit_stock', 'weighed_receiving', 'shrinkage', 'supplier_purchase', 'landed_cost',
                 'price_levels', 'credit_sales', 'kasbon', 'delivery', 'whatsapp_notification']],
         ['code' => 'toko_baju', 'name' => 'Toko Baju / Fashion', 'category' => 'retail',
             'pos_layout' => 'retail', 'icon' => 'shirt',

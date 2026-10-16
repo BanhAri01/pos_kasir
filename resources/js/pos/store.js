@@ -153,7 +153,7 @@ export function addToCart(product, { qty = 1, unitPrice = null, note = '', unitI
         product_id: product.id,
         name: product.name,
         unit: product.unit,
-        decimal: product.unit_allows_decimal || product.pricing_mode === 'per_weight',
+        decimal: product.pricing_mode === 'per_weight' ? !unitId : !!product.unit_allows_decimal,
         pricing_mode: product.pricing_mode,
         unit_price: 0,
         original_price: 0,

@@ -172,14 +172,16 @@ return [
         'price_levels' => ['Langganan'],
         'products' => [
             ['Telur Campur', 'Telur', 26000, 24000, 'Kg', 100, 'goods', null, 'per_weight'],
+            ['Telur Super', 'Telur', 30000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
             ['Telur Besar', 'Telur', 28000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
+            ['Telur Sedang', 'Telur', 26500, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
             ['Telur Kecil', 'Telur', 25000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
             ['Telur Retak', 'Telur', 20000, 24000, 'Kg', 0, 'goods', null, 'per_weight'],
         ],
-        // Telur campur disortir menjadi jenis-jenis berikut (modul egg_collector)
+        // Telur campur disortir menjadi jenis-jenis berikut (modul egg_collector). Jenis sesuai wawancara pengepul 16 Okt 2026.
         'egg_products' => [
             'mixed' => ['Telur Campur'],
-            'grades' => ['Telur Besar', 'Telur Kecil', 'Telur Retak'],
+            'grades' => ['Telur Super', 'Telur Besar', 'Telur Sedang', 'Telur Kecil', 'Telur Retak'],
         ],
     ],
 

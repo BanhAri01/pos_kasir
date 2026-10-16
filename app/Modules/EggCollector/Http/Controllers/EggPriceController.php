@@ -7,6 +7,7 @@ use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\EggCollector\Models\EggProduct;
 use App\Modules\EggCollector\Services\EggPriceService;
+use App\Modules\EggCollector\Services\EggUnitService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,7 @@ class EggPriceController extends Controller
         private CurrentOutlet $outlet,
         private TenantContext $context,
         private EggPriceService $prices,
+        private EggUnitService $units,
     ) {}
 
     public function index(Request $request): Response
@@ -49,6 +51,7 @@ class EggPriceController extends Controller
         ]);
 
         $count = $this->prices->save($outletId, $data['prices'], $request->user());
+        $this->units->refreshPrices($outletId);
 
         return back()->with('success', "Harga hari ini tersimpan untuk {$count} jenis telur. Kasir langsung memakai harga baru.");
     }
@@ -64,7 +67,35 @@ class EggPriceController extends Controller
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'unit' => $p->unit?->name ?? '', 'role' => $marked[$p->id] ?? null])
                 ->values(),
             'roles' => EggProduct::ROLES,
+            'units' => $this->units->board(),
         ]);
+    }
+
+    /** Isi kg per Peti / Tray / Ikat untuk tiap jenis telur. Kosong = satuan itu tidak dipakai. */
+    public function updateUnits(Request $request): RedirectResponse
+    {
+        $outletId = $this->outlet->id($request->user());
+        abort_unless($outletId, 404);
+
+        $request->merge(['units' => collect((array) $request->input('units', []))->map(fn ($row) => is_array($row) ? [
+            ...$row,
+            ...collect(array_keys(EggUnitService::UNITS))->mapWithKeys(fn ($k) => [$k => \App\Core\Support\Qty::fromInput($row[$k] ?? null)])->all(),
+        ] : $row)->all()]);
+
+        $data = $request->validate([
+            'units' => ['required', 'array', 'min:1', 'max:30'],
+            'units.*.product_id' => ['required', 'integer', 'distinct', Rule::exists('egg_products', 'product_id')->where('tenant_id', $this->context->id())],
+            'units.*.peti' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'units.*.tray' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'units.*.ikat' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+        ], [
+            'units.*.*.numeric' => 'Isi berat dengan angka, contoh 15 atau 1,8.',
+            'units.*.*.max' => 'Berat terlalu besar. Isi dalam kg.',
+        ]);
+
+        $this->units->save($data['units'], $outletId);
+
+        return back()->with('success', 'Isi peti, tray, dan ikat tersimpan. Kasir dan belanja sudah bisa memakai satuan ini.');
     }
 
     public function updateTypes(Request $request): RedirectResponse

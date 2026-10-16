@@ -36,7 +36,9 @@ const staffId = ref(null);
 const isAdd = computed(() => !!props.product && !props.line);
 const product = computed(() => (props.product ?? store.boot.products.find((p) => p.id === props.line?.product_id)) || null);
 const pricingMode = computed(() => product.value?.pricing_mode ?? 'fixed');
-const decimal = computed(() => product.value?.unit_allows_decimal || pricingMode.value === 'per_weight');
+// Barang timbang yang dijual per satuan lain (peti, tray) dihitung per buah, bukan ditimbang.
+const byWeight = computed(() => pricingMode.value === 'per_weight' && !unitId.value);
+const decimal = computed(() => byWeight.value || (product.value?.unit_allows_decimal && pricingMode.value !== 'per_weight'));
 const canEditPrice = computed(() => pricingMode.value === 'open_price' || (can('change_price') && !simpleMode()));
 const canDiscount = computed(() => can('give_discount') && !simpleMode());
 const units = computed(() => product.value?.units ?? []);
@@ -145,6 +147,7 @@ async function soldOut() {
 /** Tombol cepat berat umum (jual per kg). Isi 1 karung ikut ditampilkan kalau ada. */
 const quickWeights = computed(() => {
     if (pricingMode.value !== 'per_weight') return [];
+    if (unitId.value) return [1, 2, 5, 10];
     const pack = parseFloat(String(product.value?.pack_size ?? '').replace(',', '.'));
     const list = [0.5, 1, 2, 5, 10, 25];
     if (pack && !list.includes(pack)) list.push(pack);
@@ -185,7 +188,7 @@ const chip = (active) => [
                 </div>
             </div>
 
-            <QtyInput v-model="qty" :label="pricingMode === 'per_weight' ? 'Berat' : 'Jumlah'" :unit="unitLabel" :decimal="decimal" :step="decimal ? 0.5 : 1" />
+            <QtyInput v-model="qty" :label="byWeight ? 'Berat' : 'Jumlah'" :unit="unitLabel" :decimal="decimal" :step="decimal ? 0.5 : 1" />
             <div v-if="quickWeights.length" class="-mt-2 flex flex-wrap gap-2" role="group" aria-label="Berat cepat">
                 <button v-for="w in quickWeights" :key="w" type="button" :class="chip(numericQty === w)" @click="qty = String(w).replace('.', ',')">
                     {{ weightLabel(w) }} {{ unitLabel }}
@@ -203,7 +206,7 @@ const chip = (active) => [
             </div>
 
             <MoneyInput v-if="canEditPrice" v-model="price" :label="pricingMode === 'per_weight' ? `Harga per ${unitLabel}` : 'Harga'" @update:model-value="priceTouched = true" />
-            <p v-else class="text-lg text-ink-soft">Harga: <strong class="text-ink">{{ formatRupiah(price) }}</strong><template v-if="decimal"> per {{ unitLabel }}</template></p>
+            <p v-else class="text-lg text-ink-soft">Harga: <strong class="text-ink">{{ formatRupiah(price) }}</strong><template v-if="decimal || unitId"> per {{ unitLabel }}</template></p>
 
             <MoneyInput v-if="canDiscount" v-model="discount" label="Diskon untuk barang ini" optional />
 

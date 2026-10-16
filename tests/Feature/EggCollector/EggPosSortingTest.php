@@ -12,7 +12,7 @@ it('data awal kasir pengepul menyebut telur campur dan jenis hasil sortir', func
     $eggs = $this->actingAs($this->owner)->getJson(route('pos.api.bootstrap'))->assertOk()->json('eggs');
 
     expect($eggs['mixed'])->toBe([($this->p)('Telur Campur')->id])
-        ->and($eggs['grades'])->toBe([($this->p)('Telur Besar')->id, ($this->p)('Telur Kecil')->id, ($this->p)('Telur Retak')->id]);
+        ->and($eggs['grades'])->toBe(collect(['Telur Super', 'Telur Besar', 'Telur Sedang', 'Telur Kecil', 'Telur Retak'])->map(fn ($n) => ($this->p)($n)->id)->all());
 
     $warung = registerTenant('warung_makan', phone: '6281200001111');
     expect($this->actingAs($warung)->getJson(route('pos.api.bootstrap'))->json('eggs'))->toBeNull();
