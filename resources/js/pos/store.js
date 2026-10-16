@@ -575,6 +575,7 @@ export async function sortEggs(payload) {
         if (product) {
             product.stock_raw = s.stock_raw;
             product.stock = s.stock;
+            product.is_out_of_stock = s.stock_raw <= 0;
         }
     }
     persistBoot();

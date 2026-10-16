@@ -94,7 +94,7 @@ async function save() {
 
             <div class="flex flex-col gap-3">
                 <p class="text-lg font-bold text-ink">Hasil sortir</p>
-                <QtyInput v-for="g in gradeList" :key="g.id" v-model="outputs[g.id]" :label="g.name" unit="kg" decimal :step="1" compact />
+                <QtyInput v-for="g in gradeList" :key="g.id" v-model="outputs[g.id]" :label="g.name" unit="kg" decimal :step="1" />
                 <p v-if="errors.outputs" class="text-base font-bold text-danger-ink">{{ errors.outputs }}</p>
             </div>
 

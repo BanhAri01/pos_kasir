@@ -15,6 +15,8 @@ import { formatRupiah } from '@/composables/useRupiah';
 
 defineOptions({ layout: AppLayout });
 
+const tanggal = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }) : '');
+
 const props = defineProps({
     date: { type: String, required: true },
     outlet: { type: Object, required: true },
@@ -49,7 +51,7 @@ function save() {
 <template>
     <Head title="Harga Telur Hari Ini" />
     <div class="mx-auto max-w-3xl">
-        <PageHeader title="Harga Telur Hari Ini" :subtitle="`${outlet.name} · ${date}`">
+        <PageHeader title="Harga Telur Hari Ini" :subtitle="`${outlet.name} · ${tanggal(date)}`">
             <template #action>
                 <BigButton :href="route('egg.types')" variant="secondary">
                     <Settings :size="22" aria-hidden="true" /> Jenis Telur
@@ -110,7 +112,7 @@ function save() {
                 </div>
 
                 <p v-if="row.previous" class="-mt-1 text-base text-ink-soft">
-                    Harga kemarin ({{ row.previous.date }}):
+                    Harga terakhir ({{ tanggal(row.previous.date) }}):
                     <template v-if="row.previous.buy_price !== null">
                         beli <strong class="text-ink tabular-nums">{{ formatRupiah(row.previous.buy_price) }}</strong>/{{ row.unit }} ·
                     </template>

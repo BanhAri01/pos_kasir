@@ -26,6 +26,8 @@ const props = defineProps({
     payables: { type: Object, required: true },
 });
 
+const tanggal = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }) : '');
+
 const periodKey = ref('today');
 
 const periodOptions = computed(() => [
@@ -50,7 +52,7 @@ function changeOutlet(value) {
     <div class="mx-auto max-w-4xl">
         <PageHeader
             title="Untung Telur"
-            :subtitle="`${current.label} (${current.from === current.to ? current.from : `${current.from} s.d. ${current.to}`})`"
+            :subtitle="`${current.label} (${current.from === current.to ? tanggal(current.from) : `${tanggal(current.from)} s.d. ${tanggal(current.to)}`})`"
         >
             <template #action>
                 <div class="flex flex-wrap gap-2">
@@ -141,7 +143,7 @@ function changeOutlet(value) {
 
             <div class="card flex flex-col gap-1 p-5">
                 <p class="text-base font-bold text-ink-soft">Uang keluar</p>
-                <p class="font-display text-2xl font-extrabold text-danger-ink tabular-nums">
+                <p class="font-display text-2xl font-extrabold text-ink tabular-nums">
                     {{ formatRupiah(current.cash_out) }}
                 </p>
                 <p class="text-base text-ink-soft">
@@ -293,7 +295,7 @@ function changeOutlet(value) {
                 <div>
                     <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                         <h2 class="text-xl font-extrabold text-ink">Utang ke peternak</h2>
-                        <span class="font-display text-2xl font-extrabold text-danger-ink tabular-nums">
+                        <span class="font-display text-2xl font-extrabold tabular-nums" :class="payables.total > 0 ? 'text-danger-ink' : 'text-ink'">
                             {{ formatRupiah(payables.total) }}
                         </span>
                     </div>
