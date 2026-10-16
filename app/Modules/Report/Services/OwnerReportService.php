@@ -8,6 +8,7 @@ use App\Core\Support\Rupiah;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Tenant;
 use App\Modules\Catalog\Models\Product;
+use App\Modules\EggCollector\Services\EggSummaryService;
 use App\Modules\Pos\Models\Shift;
 use App\Modules\Pos\Services\ShiftService;
 use App\Modules\WhatsApp\Services\WhatsAppService;
@@ -31,6 +32,7 @@ class OwnerReportService
         private ReportService $reports,
         private WhatsAppService $whatsapp,
         private ShiftService $shifts,
+        private EggSummaryService $eggs,
     ) {}
 
     public static function settings(Tenant $tenant): array
@@ -54,6 +56,10 @@ class OwnerReportService
 
     public function dailyText(Tenant $tenant, Carbon $day): ?string
     {
+        if ($tenant->hasModule('egg_collector')) {
+            return $this->eggDailyText($tenant, $day);
+        }
+
         $date = $day->toDateString();
         $filter = ReportFilter::make($date, $date, $tenant->timezone);
         $summary = $this->reports->summary($filter);
@@ -106,6 +112,58 @@ class OwnerReportService
         }
 
         return implode("\n", $lines);
+    }
+
+    /** Laporan malam pengepul telur: untung setelah telur pecah, kg terjual per jenis, piutang pembeli, utang ke peternak. */
+    public function eggDailyText(Tenant $tenant, Carbon $day): ?string
+    {
+        $date = $day->toDateString();
+        $today = $this->eggs->period(ReportFilter::make($date, $date, $tenant->timezone));
+        if ($today['transactions'] === 0 && $today['sorting']['count'] === 0 && $today['paid_farmers'] === 0 && $today['kasbon_collected'] === 0) {
+            return null;
+        }
+
+        $month = $this->eggs->period(ReportFilter::make($day->copy()->startOfMonth()->toDateString(), $date, $tenant->timezone), false);
+        $overview = $this->eggs->debts($date);
+
+        $lines = [
+            $day->locale('id')->translatedFormat('l, j F Y'),
+            '',
+            'Telur terjual: *'.$today['kg_sold'].' kg* ('.$today['transactions'].' nota)',
+            'Penjualan: '.Rupiah::format($today['sales']),
+            'Uang masuk: *'.Rupiah::format($today['cash_in']).'*',
+            'Uang keluar: '.Rupiah::format($today['cash_out']).' (bayar peternak '.Rupiah::format($today['paid_farmers']).')',
+        ];
+        if ($today['sorting']['count'] > 0) {
+            $lines[] = 'Sortir: '.$today['sorting']['input_kg'].' kg, pecah '.$today['sorting']['shrinkage_kg'].' kg ('.Rupiah::format($today['sorting_loss']).')';
+        }
+        if ($today['damaged_loss'] > 0) {
+            $lines[] = 'Telur rusak/hilang: '.Rupiah::format($today['damaged_loss']);
+        }
+        $lines[] = 'Untung bersih hari ini: *'.Rupiah::format($today['net_profit']).'*';
+        $lines[] = 'Untung bersih bulan ini: '.Rupiah::format($month['net_profit']);
+
+        $eggLines = collect($today['eggs'])->map(fn ($e) => '• '.$e['name'].': '.$e['qty'].' '.strtolower($e['unit']).', untung '.Rupiah::format($e['profit']));
+        if ($eggLines->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = '*Per jenis telur*';
+            $lines[] = $eggLines->implode("
+");
+        }
+        if ($overview['receivables']['total'] > 0) {
+            $lines[] = '';
+            $lines[] = 'Piutang pembeli: *'.Rupiah::format($overview['receivables']['total']).'* ('.$overview['receivables']['customer_count'].' orang)';
+        }
+        if ($overview['payables']['total'] > 0) {
+            $overdue = collect($overview['payables']['suppliers'])->where('overdue', true);
+            $lines[] = 'Utang ke peternak: *'.Rupiah::format($overview['payables']['total']).'*';
+            foreach ($overdue->take(5) as $row) {
+                $lines[] = '⚠️ '.$row['name'].' '.Rupiah::format($row['amount']).' sudah lewat jatuh tempo';
+            }
+        }
+
+        return implode("
+", $lines);
     }
 
     public function shiftText(Tenant $tenant, Shift $shift): string

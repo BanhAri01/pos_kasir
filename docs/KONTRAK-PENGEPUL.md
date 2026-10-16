@@ -100,5 +100,48 @@ sorting: {
 ```
 Tampilkan modal hanya bila nilainya ada (bukan null/undefined).
 
-## 5. `Pengepul/Summary` — Ringkasan (menyusul dari C2)
-Kontrak ditambahkan setelah C2 selesai.
+## 5. `Pengepul/Summary` — Untung Telur (ringkasan)
+Rute: `GET route('egg.summary')` (izin `view_reports`: pemilik/manajer, BUKAN kasir). Pilih outlet: `?outlet=<id>` atau `?outlet=semua`.
+Menu sudah ditambahkan Claude: "Untung Telur".
+
+Props:
+```js
+outlet: 'semua' | '3',
+outlets: [ { id: 3, name: 'Gudang Utama' } ],   // tampilkan pilihan outlet hanya bila lebih dari satu
+can_see_all: true,                              // false = manajer tanpa izin semua outlet: sembunyikan pilihan "Semua"
+periods: { today: Periode, week: Periode, month: Periode },  // 'Hari ini' / 'Minggu ini' (Senin s.d. hari ini) / 'Bulan ini'
+receivables: {                                  // piutang pembeli yang belum lunas (keadaan sekarang)
+  total: 200000, customer_count: 1,
+  customers: [ { customer_id: 5, name: 'Bu Ketut', amount: 200000, oldest_due: '2026-10-19' | null, count: 1 } ],  // maks 10
+},
+payables: {                                     // utang ke peternak (belanja belum lunas)
+  total: 1400000,
+  suppliers: [ { supplier_id: 2, name: 'Pak Wayan', amount: 1400000, oldest_due: '2026-10-15' | null, overdue: true, count: 1 } ],
+},
+```
+
+`Periode`:
+```js
+{
+  label: 'Hari ini', from: '2026-10-16', to: '2026-10-16',
+  sales: 280000,            // penjualan bersih
+  cash_in: 280000,          // uang masuk = dibayar saat jual + cicilan kasbon/tempo diterima
+  cash_out: 1005000,        // uang keluar = bayar peternak + pengeluaran
+  kasbon_collected: 0, unpaid_sales: 0, paid_farmers: 1000000,
+  cogs: 248070,             // modal telur yang terjual
+  gross_profit: 31930,
+  sorting_loss: 12000,      // telur pecah saat sortir (rupiah)
+  damaged_loss: 0,          // telur rusak/hilang dari menu Stok Keluar
+  expenses: 5000,
+  net_profit: 14930,        // untung bersih (bisa minus → tampilkan merah)
+  kg_sold: '10', kg_bought: '100', transactions: 1,
+  sorting: { count: 1, input_kg: '40', shrinkage_kg: '0,5', shrinkage_percent: 1.3 },
+  eggs: [ { product_id: 13, name: 'Telur Besar', unit: 'Kg', qty: '10', revenue: 280000, cost: 248070, profit: 31930 } ],
+  previous: { label: 'Kemarin' | 'Minggu lalu' | 'Bulan lalu', sales, cash_in, cash_out, net_profit, kg_sold, ... },
+  change: { sales: 12.5 | null, cash_in: null, net_profit: -421.5 | null },   // persen dibanding previous; null = tidak bisa dibandingkan
+}
+```
+- Kartu utama per periode (tab Hari ini / Minggu ini / Bulan ini): **Untung bersih** paling besar, lalu Uang masuk, Uang keluar, Telur terjual (kg). Tampilkan `change` sebagai panah naik/turun + "dibanding {previous.label}".
+- Rincian untung: Penjualan − Modal telur − Telur pecah − Telur rusak − Pengeluaran = Untung bersih (pakai angka dari props, jangan dihitung ulang).
+- Tabel per jenis telur (`eggs`), kotak Sortir (`sorting`), daftar Utang ke peternak (merah bila `overdue`, tautan ke `route('purchases.index')`), daftar Piutang pembeli (tautan ke `route('receivables.index')`).
+- Setelah halaman dibuat, ubah `->component('Pengepul/Summary', false)` di `tests/Feature/EggCollector/EggSummaryTest.php` menjadi `->component('Pengepul/Summary')`.

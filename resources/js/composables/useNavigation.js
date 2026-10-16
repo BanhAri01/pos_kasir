@@ -74,6 +74,7 @@ export function useNavigation() {
             { key: 'members', label: 'Member', description: 'Paket member & absen masuk', href: route('members.index'), icon: IdCard, match: ['members.*'], show: hasModule('membership') && can('use_pos') },
             { key: 'receivables', label: 'Kasbon / Utang', description: 'Siapa yang masih berutang', href: route('receivables.index'), icon: NotebookPen, match: ['receivables.*'], show: hasModule('kasbon') && can('manage_customers') },
             { key: 'egg-prices', label: 'Harga Telur Hari Ini', description: 'Harga beli & jual telur hari ini', href: route('egg.prices'), icon: Egg, match: ['egg.prices', 'egg.types'], show: hasModule('egg_collector') && can('manage_products') },
+            { key: 'egg-summary', label: 'Untung Telur', description: 'Untung hari ini, piutang pembeli, utang peternak', href: route('egg.summary'), icon: HandCoins, match: ['egg.summary'], show: hasModule('egg_collector') && can('view_reports') },
             { key: 'egg-sorting', label: 'Sortir Telur', description: 'Telur campur jadi besar, kecil, retak', href: route('egg.sortings.create'), icon: Layers, match: ['egg.sortings.*'], show: hasModule('egg_collector') && (can('manage_stock') || can('use_pos')) },
             { key: 'deliveries', label: 'Pengiriman', description: 'Antar barang & surat jalan', href: route('deliveries.index'), icon: Bike, match: ['deliveries.*'], show: hasModule('delivery') && can('use_pos') },
             {
