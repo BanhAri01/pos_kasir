@@ -13,6 +13,7 @@ use App\Modules\Catalog\Models\Category;
 use App\Modules\Catalog\Models\Product;
 use App\Modules\Catalog\Services\ProductQuery;
 use App\Modules\Customer\Models\Customer;
+use App\Modules\EggCollector\Models\EggProduct;
 use App\Modules\Loyalty\Services\LoyaltyService;
 use App\Modules\Operations\Models\DiningTable;
 use App\Modules\Operations\Models\MembershipPlan;
@@ -132,6 +133,11 @@ class PosBootstrapService
                 ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'job_title' => $u->job_title]),
             'tables' => $has('tables') ? DiningTable::query()->where('outlet_id', $outlet->id)->where('is_active', true)
                 ->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'area']) : [],
+            // Pengepul telur: jenis hasil sortir yang stoknya bisa ditambah dari telur campur langsung di kasir.
+            'eggs' => $has('egg_collector') ? [
+                'mixed' => EggProduct::query()->where('role', 'mixed')->orderBy('sort_order')->pluck('product_id'),
+                'grades' => EggProduct::query()->where('role', 'grade')->orderBy('sort_order')->pluck('product_id'),
+            ] : null,
             'shift' => $shift ? [
                 'uuid' => $shift->uuid,
                 'opened_at' => $shift->opened_at->toIso8601String(),

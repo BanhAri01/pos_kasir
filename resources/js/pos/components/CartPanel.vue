@@ -5,21 +5,24 @@
  * Kalau sedang melayani meja: bisa "Simpan ke Meja" (bayar nanti) atau "Pisah Bayar".
  */
 import { computed } from 'vue';
-import { Armchair, CheckSquare, Gift, Minus, Percent, Plus, Save, ShoppingBag, Square, Trash2, UserRound } from 'lucide-vue-next';
+import { Armchair, CheckSquare, Gift, Layers, Minus, Percent, Plus, Save, ShoppingBag, Square, Trash2, UserRound } from 'lucide-vue-next';
 import BigButton from '@/Components/ui/BigButton.vue';
 import SegmentedControl from '@/Components/ui/SegmentedControl.vue';
 import { formatRupiah } from '@/composables/useRupiah';
-import { can, canRedeemMore, cancelRedeem, clearCart, customerPoints, hasModule, loyaltyRule, redeemReward, saveToTable, setQty, simpleMode, store, tableName, totals } from '../store';
+import { can, canRedeemMore, cancelRedeem, clearCart, customerPoints, eggShortage, hasModule, loyaltyRule, redeemReward, saveToTable, setQty, simpleMode, store, tableName, totals } from '../store';
 import { lineMoney } from '../lib/calculator';
 import { showToast } from '../lib/toast';
 
-const emit = defineEmits(['edit', 'pay', 'customer', 'discount', 'tables']);
+const emit = defineEmits(['edit', 'pay', 'customer', 'discount', 'tables', 'sort-eggs']);
 
 const isFnb = computed(() => store.boot.tenant.pos_layout === 'fnb');
 const qtyText = (q) => String(q).replace('.', ',');
 const step = (line) => (line.decimal ? 0.5 : 1);
 const staffName = (id) => store.boot.staff.find((s) => s.id === id)?.name;
 const splitting = computed(() => !!store.payOnlyKeys);
+
+// Peringatan stok telur cukup sekali per jenis (di baris pertama jenis itu).
+const eggShort = (line) => (store.cart.find((l) => l.product_id === line.product_id) === line ? eggShortage(line.product_id) : 0);
 
 async function save() {
     await saveToTable();
@@ -133,6 +136,15 @@ function toggleLine(line) {
                             </button>
                             <button type="button" class="ml-auto min-h-12 rounded-xl px-3 text-base font-bold text-primary-ink hover:bg-primary-soft" @click="emit('edit', line)">Ubah</button>
                         </div>
+                        <button
+                            v-if="eggShort(line) > 0"
+                            type="button"
+                            class="pressable mt-2 flex min-h-12 w-full items-center gap-2 rounded-xl bg-accent-soft px-3 text-left text-base font-bold text-accent-ink"
+                            @click="emit('sort-eggs', { productId: line.product_id, shortage: eggShort(line) })"
+                        >
+                            <Layers :size="22" class="shrink-0" aria-hidden="true" />
+                            <span class="flex-1">Stok kurang {{ qtyText(eggShort(line)) }} kg. Sortir dari telur campur?</span>
+                        </button>
                     </div>
                 </li>
             </ul>

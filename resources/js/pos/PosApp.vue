@@ -29,16 +29,23 @@ import SuccessScreen from './components/SuccessScreen.vue';
 import SyncStatus from './components/SyncStatus.vue';
 import { addToCart, cartCount, hasModule, loadBootstrap, store, totals } from './store';
 import KasbonPaySheet from './components/KasbonPaySheet.vue';
+import EggSortSheet from './components/EggSortSheet.vue';
 import TablesSheet from './components/TablesSheet.vue';
 import SelfOrdersSheet from './components/SelfOrdersSheet.vue';
 import { selfOrders, selfOrdersEnabled, startSelfOrderPolling, stopSelfOrderPolling } from './selfOrders';
 import { api } from './lib/api';
 import { syncState } from './lib/sync';
 
-const sheets = ref({ variant: false, tables: false, kasbon: false, cart: false, pay: false, item: false, customer: false, discount: false, history: false, cash: false, close: false, printer: false, menu: false, selfOrders: false });
+const sheets = ref({ variant: false, tables: false, kasbon: false, cart: false, pay: false, item: false, customer: false, discount: false, history: false, cash: false, close: false, printer: false, menu: false, selfOrders: false, eggSort: false });
 const editing = ref({ line: null, product: null });
 const variantModel = ref(null);
 const kasbonCustomer = ref(null);
+const eggSort = ref({ productId: null, shortage: 0 });
+
+function openEggSort(payload) {
+    eggSort.value = payload;
+    sheets.value.eggSort = true;
+}
 
 function openKasbon(customer) {
     kasbonCustomer.value = customer;
@@ -183,7 +190,7 @@ const menuItems = [
             </section>
 
             <aside v-if="isWide" class="flex w-[400px] shrink-0 flex-col border-l border-line bg-surface p-4 xl:w-[440px]">
-                <CartPanel @edit="onEdit" @pay="openPay" @customer="sheets.customer = true" @discount="sheets.discount = true" @tables="sheets.tables = true" />
+                <CartPanel @edit="onEdit" @pay="openPay" @customer="sheets.customer = true" @discount="sheets.discount = true" @tables="sheets.tables = true" @sort-eggs="openEggSort" />
             </aside>
         </main>
 
@@ -208,7 +215,7 @@ const menuItems = [
         <!-- Panel-panel -->
         <BottomSheet v-if="ready && !isWide" v-model:open="sheets.cart" title="">
             <div class="h-[70dvh]">
-                <CartPanel @edit="onEdit" @pay="openPay" @customer="sheets.customer = true" @discount="sheets.discount = true" @tables="sheets.tables = true" />
+                <CartPanel @edit="onEdit" @pay="openPay" @customer="sheets.customer = true" @discount="sheets.discount = true" @tables="sheets.tables = true" @sort-eggs="openEggSort" />
             </div>
         </BottomSheet>
 
@@ -240,6 +247,7 @@ const menuItems = [
             <TablesSheet v-if="hasModule('tables')" v-model:open="sheets.tables" />
             <SelfOrdersSheet v-if="selfOrdersEnabled()" v-model:open="sheets.selfOrders" />
             <KasbonPaySheet v-model:open="sheets.kasbon" :customer="kasbonCustomer" />
+            <EggSortSheet v-model:open="sheets.eggSort" :product-id="eggSort.productId" :shortage="eggSort.shortage" />
             <DiscountSheet v-model:open="sheets.discount" />
             <HistorySheet v-model:open="sheets.history" />
             <CashSheet v-model:open="sheets.cash" />

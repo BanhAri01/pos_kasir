@@ -11,6 +11,7 @@ use App\Modules\EggCollector\Models\EggSorting;
 use App\Modules\EggCollector\Services\EggPriceService;
 use App\Modules\EggCollector\Services\EggSortingService;
 use App\Modules\Inventory\Services\StockService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -59,7 +60,7 @@ class EggSortingController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $this->authorizeSorting($user);
@@ -87,6 +88,21 @@ class EggSortingController extends Controller
 
         $sorting = $this->sorting->sort($data, $outletId, $user);
         $message = "Sortir {$sorting->number} tersimpan. Stok telur sudah diperbarui.";
+
+        if ($request->expectsJson()) {
+            $products = collect([$sorting->mixed_product_id])->merge($sorting->items->pluck('product_id'))->unique();
+
+            return response()->json([
+                'message' => $message,
+                'number' => $sorting->number,
+                'stocks' => $products->map(function (int $id) use ($outletId, $sorting) {
+                    $product = $id === $sorting->mixed_product_id ? $sorting->mixed : $sorting->items->firstWhere('product_id', $id)->product;
+                    $qty = $this->stock->qty($outletId, $product);
+
+                    return ['product_id' => $id, 'stock_raw' => (float) $qty, 'stock' => Qty::display($qty)];
+                })->values(),
+            ], 201);
+        }
 
         return ($data['kembali'] ?? null) === 'kasir'
             ? redirect()->route('pos.show')->with('success', $message)

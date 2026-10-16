@@ -553,6 +553,35 @@ export async function payReceivable(customer, amount, paymentMethodId) {
     syncNow();
 }
 
+// ---------------------------------------------------------------- pengepul telur
+
+export const isEggGrade = (productId) => state.boot?.eggs?.grades?.includes(productId) ?? false;
+
+/** Kekurangan stok jenis telur hasil sortir di keranjang (dipesan − stok). 0 bila cukup. */
+export function eggShortage(productId) {
+    const product = productById(productId);
+    if (!isEggGrade(productId) || !product?.track_stock || product.stock_raw === null) return 0;
+    const ordered = state.cart.filter((l) => l.product_id === productId).reduce((sum, l) => sum + Number(l.qty) * (l.conversion || 1), 0);
+
+    return Math.max(0, round3(ordered - product.stock_raw));
+}
+
+/** Sortir telur campur langsung dari kasir (butuh internet). Stok di layar diperbarui, keranjang tetap. */
+export async function sortEggs(payload) {
+    requireOnline('Sortir telur');
+    const result = await api.post(route('egg.sortings.store'), payload);
+    for (const s of result.stocks ?? []) {
+        const product = productById(s.product_id);
+        if (product) {
+            product.stock_raw = s.stock_raw;
+            product.stock = s.stock;
+        }
+    }
+    persistBoot();
+
+    return result;
+}
+
 // ---------------------------------------------------------------- riwayat
 
 /** Transaksi hari ini: dari server (kalau online) + yang belum terkirim dari HP ini. */
