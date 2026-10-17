@@ -1230,7 +1230,7 @@
     ]
   },
   "resources/js/Pages/Dashboard.vue": {
-    "file": "assets/Dashboard-KZs7FLi5.js",
+    "file": "assets/Dashboard-eS8Ydz-F.js",
     "name": "Dashboard",
     "src": "resources/js/Pages/Dashboard.vue",
     "isDynamicEntry": true,
@@ -1276,7 +1276,7 @@
     ]
   },
   "resources/js/Pages/Dev/Components.vue": {
-    "file": "assets/Components-D_4K48W8.js",
+    "file": "assets/Components-CW7Bo0I7.js",
     "name": "Components",
     "src": "resources/js/Pages/Dev/Components.vue",
     "isDynamicEntry": true,
@@ -2858,7 +2858,7 @@
     ]
   },
   "resources/js/Pages/Reports/Index.vue": {
-    "file": "assets/Index-D6nqxSHu.js",
+    "file": "assets/Index-CTT4qUWt.js",
     "name": "Index",
     "src": "resources/js/Pages/Reports/Index.vue",
     "isDynamicEntry": true,
@@ -3153,7 +3153,7 @@
     ]
   },
   "resources/js/Pages/Settings/Display.vue": {
-    "file": "assets/Display-BqT7pGxo.js",
+    "file": "assets/Display-C0H_ZsqU.js",
     "name": "Display",
     "src": "resources/js/Pages/Settings/Display.vue",
     "isDynamicEntry": true,
@@ -4206,7 +4206,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BmH8po0w.js",
+    "file": "assets/app-M6hdbpdK.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,

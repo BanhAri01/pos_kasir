@@ -163,12 +163,96 @@ class ReportService
         return $rows->sortByDesc($sort === 'qty' ? 'qty' : ($sort === 'profit' ? 'profit' : 'revenue'))->take($limit)->values()->all();
     }
 
+    /**
+     * Per kategori. Penjualan bersih tiap nota (sesudah diskon nota, tanpa pajak/layanan/pembulatan)
+     * dibagi ke barisnya sesuai nilai baris, pengembalian dibagi ke barang yang dikembalikan,
+     * sehingga jumlah semua kategori sama dengan penjualan bersih & modal di Ringkasan.
+     */
     public function categories(ReportFilter $f): array
     {
-        return collect($this->products($f, PHP_INT_MAX))
-            ->groupBy('category')
-            ->map(fn ($rows, $name) => ['name' => $name, 'revenue' => $rows->sum('revenue'), 'profit' => $rows->sum('profit'), 'qty' => round($rows->sum('qty'), 3)])
-            ->sortByDesc('revenue')->values()->all();
+        $sold = DB::table('sale_items')
+            ->joinSub($this->sales($f)->select('id', 'subtotal', 'total', 'tax_amount', 'service_charge_amount', 'rounding_amount'), 's', 's.id', '=', 'sale_items.sale_id')
+            ->leftJoin('products', 'products.id', '=', 'sale_items.product_id')
+            ->selectRaw('products.category_id,
+                SUM(CASE WHEN s.subtotal > 0 THEN sale_items.subtotal * 1.0 * (s.total - s.tax_amount - s.service_charge_amount - s.rounding_amount) / s.subtotal ELSE 0 END) as revenue,
+                SUM(sale_items.cost_amount) as cost, SUM(sale_items.qty) as qty, COUNT(DISTINCT sale_items.sale_id) as trx')
+            ->groupBy('products.category_id')
+            ->get();
+
+        $refundItems = DB::table('refund_items')
+            ->joinSub($this->refundQuery($f)->select('id', 'amount'), 'r', 'r.id', '=', 'refund_items.refund_id')
+            ->join('sale_items', 'sale_items.id', '=', 'refund_items.sale_item_id')
+            ->leftJoin('products', 'products.id', '=', 'sale_items.product_id')
+            ->selectRaw('refund_items.refund_id, r.amount as refund_amount, products.category_id, refund_items.amount,
+                CASE WHEN sale_items.qty > 0 THEN refund_items.qty * 1.0 * sale_items.cost_amount / sale_items.qty ELSE 0 END as cost')
+            ->get();
+
+        $rows = [];
+        $add = function (?int $categoryId, float $revenue, float $cost, float $qty = 0, int $trx = 0) use (&$rows) {
+            $key = $categoryId ?? 0;
+            $rows[$key] ??= ['category_id' => $categoryId, 'revenue' => 0.0, 'cost' => 0.0, 'qty' => 0.0, 'transactions' => 0];
+            $rows[$key]['revenue'] += $revenue;
+            $rows[$key]['cost'] += $cost;
+            $rows[$key]['qty'] += $qty;
+            $rows[$key]['transactions'] += $trx;
+        };
+
+        foreach ($sold as $r) {
+            $add($r->category_id, (float) $r->revenue, (float) $r->cost, (float) $r->qty, (int) $r->trx);
+        }
+
+        foreach ($refundItems->groupBy('refund_id') as $items) {
+            $itemsTotal = (int) $items->sum('amount');
+            foreach ($items as $item) {
+                $share = $itemsTotal > 0 ? $item->amount / $itemsTotal : 1 / $items->count();
+                $add($item->category_id, -$item->refund_amount * $share, -(float) $item->cost);
+            }
+        }
+
+        if (! $rows) {
+            return [];
+        }
+
+        $summary = $this->summary($f);
+        $revenue = $this->roundToTotal(array_map(fn ($r) => $r['revenue'], $rows), $summary['net_sales']);
+        $cost = $this->roundToTotal(array_map(fn ($r) => $r['cost'], $rows), $summary['cogs']);
+        $total = array_sum($revenue);
+        $names = DB::table('categories')->whereIn('id', array_filter(array_keys($rows)))->pluck('name', 'id');
+
+        return collect($rows)->map(function ($r, $key) use ($names, $revenue, $cost, $total) {
+            $profit = $revenue[$key] - $cost[$key];
+
+            return [
+                'name' => $r['category_id'] ? ($names[$r['category_id']] ?? 'Kategori terhapus') : 'Tanpa kategori',
+                'revenue' => $revenue[$key],
+                'cost' => $cost[$key],
+                'profit' => $profit,
+                'margin' => $revenue[$key] > 0 ? round($profit / $revenue[$key] * 100, 1) : 0.0,
+                'share' => $total > 0 ? round($revenue[$key] / $total * 100, 1) : 0.0,
+                'qty' => round($r['qty'], 3),
+                'transactions' => $r['transactions'],
+            ];
+        })->sortByDesc('revenue')->values()->all();
+    }
+
+    /**
+     * Bulatkan ke rupiah. Selisih pembulatan (paling banyak 1 rupiah per kategori) dipindah ke nilai terbesar
+     * supaya jumlahnya pas dengan Ringkasan.
+     *
+     * @param  array<int, float>  $values
+     * @return array<int, int>
+     */
+    private function roundToTotal(array $values, int $target): array
+    {
+        $rounded = array_map(fn ($v) => (int) round($v), $values);
+        $diff = $target - array_sum($rounded);
+
+        if ($diff !== 0 && abs($diff) <= count($rounded)) {
+            $abs = array_map('abs', $rounded);
+            $rounded[array_search(max($abs), $abs, true)] += $diff;
+        }
+
+        return $rounded;
     }
 
     /** Per cara bayar. Pengembalian dikurangkan dari cara bayar yang dipakai mengembalikan. */

@@ -39,6 +39,7 @@ const props = defineProps({
 const TABS = [
     { key: 'ringkasan', label: 'Ringkasan' },
     { key: 'barang', label: 'Barang' },
+    { key: 'kategori', label: 'Kategori' },
     { key: 'pembayaran', label: 'Cara Bayar' },
     { key: 'karyawan', label: 'Karyawan' },
     { key: 'outlet', label: 'Outlet' },
@@ -64,6 +65,11 @@ const hourPoints = computed(() => props.hours.slice(6, 24).map((h) => ({ label: 
 const busiest = computed(() => [...props.hours].sort((a, b) => b.transactions - a.transactions)[0]);
 const maxRevenue = computed(() => Math.max(1, ...props.products.map((p) => p.revenue)));
 const qty = (n) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 3 });
+const categoryTotals = computed(() => {
+    const revenue = props.categories.reduce((s, c) => s + c.revenue, 0);
+    const cost = props.categories.reduce((s, c) => s + c.cost, 0);
+    return { revenue, cost, profit: revenue - cost, margin: revenue > 0 ? Math.round(((revenue - cost) / revenue) * 1000) / 10 : 0 };
+});
 </script>
 
 <template>
@@ -205,15 +211,42 @@ const qty = (n) => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 3 
             </li>
         </ul>
 
-        <section v-if="categories.length > 1" class="mt-6">
-            <h2 class="mb-3 text-xl font-extrabold text-ink">Per kategori</h2>
-            <ul class="card divide-y divide-line">
-                <li v-for="c in categories" :key="c.name" class="flex min-h-touch items-center justify-between gap-3 px-4 py-2 text-lg">
-                    <span class="font-bold text-ink">{{ c.name }}</span>
-                    <span class="text-right tabular-nums">{{ formatRupiah(c.revenue) }} <span class="block text-base text-primary-ink">untung {{ formatRupiah(c.profit) }}</span></span>
+        <button v-if="products.length" type="button" class="pressable mt-4 min-h-touch w-full rounded-2xl bg-surface-2 px-4 text-lg font-bold text-ink" @click="go({ tab: 'kategori' })">
+            Lihat untung per kategori →
+        </button>
+    </template>
+
+    <!-- KATEGORI -->
+    <template v-if="tab === 'kategori'">
+        <EmptyState v-if="!categories.length" title="Belum ada penjualan" message="Coba pilih periode lain." />
+        <template v-else>
+            <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <StatCard label="Penjualan bersih" :value="categoryTotals.revenue" big />
+                <StatCard label="Modal" :value="categoryTotals.cost" />
+                <StatCard label="Untung kotor" :value="categoryTotals.profit" :tone="categoryTotals.profit < 0 ? 'negative' : 'positive'" :hint="`margin ${categoryTotals.margin}%`" />
+            </div>
+            <ul class="grid gap-3 md:grid-cols-2">
+                <li v-for="c in categories" :key="c.name" class="card flex flex-col gap-2 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <span class="min-w-0">
+                            <span class="block text-xl font-extrabold text-ink">{{ c.name }}</span>
+                            <span class="block text-base text-ink-soft">{{ qty(c.qty) }} terjual · {{ c.transactions }} transaksi</span>
+                        </span>
+                        <span class="shrink-0 rounded-xl bg-surface-2 px-3 py-1 text-base font-bold text-ink tabular-nums">{{ c.share }}% omzet</span>
+                    </div>
+                    <div class="h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden="true"><div class="h-full rounded-full bg-primary/70" :style="{ width: `${Math.max(0, c.share)}%` }" /></div>
+                    <dl class="flex flex-col gap-1 text-lg">
+                        <div class="flex justify-between gap-3"><dt class="text-ink-soft">Penjualan</dt><dd class="whitespace-nowrap font-bold tabular-nums">{{ formatRupiah(c.revenue) }}</dd></div>
+                        <div class="flex justify-between gap-3"><dt class="text-ink-soft">Modal</dt><dd class="whitespace-nowrap tabular-nums text-danger-ink">− {{ formatRupiah(c.cost) }}</dd></div>
+                        <div class="flex justify-between gap-3 border-t border-line pt-1 font-extrabold">
+                            <dt>Untung</dt>
+                            <dd class="whitespace-nowrap tabular-nums" :class="c.profit < 0 ? 'text-danger-ink' : 'text-primary-ink'">{{ formatRupiah(c.profit) }} <span class="text-base font-bold">({{ c.margin }}%)</span></dd>
+                        </div>
+                    </dl>
                 </li>
             </ul>
-        </section>
+            <p class="mt-4 text-base text-ink-soft">Untung di sini = penjualan dikurangi modal barang/bahan. Diskon nota sudah dibagi ke tiap kategori. Pengeluaran (sewa, gaji, listrik) belum dikurangi, lihat untung bersih di Ringkasan.</p>
+        </template>
     </template>
 
     <!-- CARA BAYAR -->

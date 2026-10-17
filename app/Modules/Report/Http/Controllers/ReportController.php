@@ -22,7 +22,7 @@ use Inertia\Response;
  */
 class ReportController extends Controller
 {
-    public const TABS = ['ringkasan', 'barang', 'pembayaran', 'karyawan', 'outlet'];
+    public const TABS = ['ringkasan', 'barang', 'kategori', 'pembayaran', 'karyawan', 'outlet'];
 
     public function __construct(private ReportService $reports, private TenantContext $context, private CurrentOutlet $outlet) {}
 
@@ -38,10 +38,8 @@ class ReportController extends Controller
                 'hours' => $this->reports->byHour($filter),
                 'expenseCategories' => $this->reports->expenseCategories($filter),
             ],
-            'barang' => [
-                'products' => $this->reports->products($filter, 100, $request->query('urut', 'revenue')),
-                'categories' => $this->reports->categories($filter),
-            ],
+            'barang' => ['products' => $this->reports->products($filter, 100, $request->query('urut', 'revenue'))],
+            'kategori' => ['categories' => $this->reports->categories($filter)],
             'pembayaran' => ['payments' => $this->reports->payments($filter), 'summary' => $this->reports->summary($filter)],
             'karyawan' => ['cashiers' => $this->reports->cashiers($filter), 'staff' => $this->reports->staff($filter)],
             'outlet' => ['outletSales' => $this->reports->outlets($filter)],
@@ -89,6 +87,10 @@ class ReportController extends Controller
                 ['Barang', 'Kategori', 'Jumlah', 'Satuan', 'Penjualan', 'Modal', 'Untung'],
                 ...array_map(fn ($p) => [$p['name'], $p['category'], $p['qty'], $p['unit'], $p['revenue'], $p['cost'], $p['profit']], $this->reports->products($filter, PHP_INT_MAX)),
             ], money: [4, 5, 6])
+            ->sheet('Per Kategori', [
+                ['Kategori', 'Jumlah terjual', 'Transaksi', 'Penjualan bersih', 'Modal', 'Untung', 'Untung (%)', 'Porsi omzet (%)'],
+                ...array_map(fn ($c) => [$c['name'], $c['qty'], $c['transactions'], $c['revenue'], $c['cost'], $c['profit'], $c['margin'], $c['share']], $this->reports->categories($filter)),
+            ], money: [3, 4, 5])
             ->sheet('Cara Bayar', [
                 ['Cara bayar', 'Transaksi', 'Diterima', 'Dikembalikan', 'Bersih'],
                 ...array_map(fn ($p) => [$p['name'], $p['transactions'], $p['total'], $p['refunds'], $p['net']], $this->reports->payments($filter)),
