@@ -66,8 +66,8 @@ return [
             ['Roti Bakar Cokelat', 'Makanan', 15000, 6000, 'Porsi', null, 'goods'],
             ['Kentang Goreng', 'Makanan', 15000, 6500, 'Porsi', null, 'goods'],
             ['Biji Kopi Arabika', 'Bahan Baku', 0, 250, 'Gram', 2000, 'ingredient'],
-            ['Susu Segar', 'Bahan Baku', 0, 20, 'Liter', 20, 'ingredient'],
-            ['Gula Aren Cair', 'Bahan Baku', 0, 60, 'Liter', 5, 'ingredient'],
+            ['Susu Segar', 'Bahan Baku', 0, 20000, 'Liter', 20, 'ingredient'],
+            ['Gula Aren Cair', 'Bahan Baku', 0, 60000, 'Liter', 5, 'ingredient'],
         ],
     ],
 

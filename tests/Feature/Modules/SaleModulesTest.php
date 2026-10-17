@@ -71,7 +71,7 @@ describe('kedai kopi: pilihan, resep, dapur, antrean', function () {
             ->and(qtyOf($this->owner, $this->susu))->toBe('19.700');   // 20 - 2 x 0,15
 
         $cost = asTenant($this->owner->tenant, fn () => Sale::first()->items()->value('cost_amount'));
-        expect($cost)->toBe(2 * 18 * 250 + 6); // biji 9.000 + susu 0,3 L x 20 = 6
+        expect($cost)->toBe(2 * 18 * 250 + 6000); // biji 9.000 + susu 0,3 L x 20.000 = 6.000
     });
 
     it('pesanan yang dibayar langsung muncul di layar dapur dengan nomor antrean', function () {
