@@ -11,7 +11,7 @@ class BackupDatabase extends Command
 {
     protected $signature = 'hermes:backup {--connection= : Nama koneksi database}';
 
-    protected $description = 'Backup database Hermes POS (terkompres gzip) dan hapus backup lama';
+    protected $description = 'Backup database Kasira (terkompres gzip) dan hapus backup lama';
 
     public function handle(DatabaseBackup $backup): int
     {

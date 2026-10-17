@@ -12,7 +12,7 @@ import WhatsAppDownBanner from '@/Components/ui/WhatsAppDownBanner.vue';
             <div class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3 sm:px-6">
                 <Link :href="route('admin.tenants.index')" class="flex items-center gap-3">
                     <AppLogo :size="36" :wordmark="false" />
-                    <span class="font-display text-lg font-extrabold text-ink">Admin Hermes</span>
+                    <span class="font-display text-lg font-extrabold text-ink">Admin Kasira</span>
                 </Link>
                 <button type="button" class="pressable ml-auto flex min-h-touch items-center gap-2 rounded-2xl px-3 text-lg font-bold text-ink-soft" @click="router.post(route('logout'))">
                     <LogOut :size="22" aria-hidden="true" /> Keluar

@@ -21,8 +21,8 @@ import {
     X,
 } from 'lucide-vue-next';
 import AppLogo from '@/Components/ui/AppLogo.vue';
-import CaduceusMark from '@/Components/ui/CaduceusMark.vue';
-import GreekKey from '@/Components/ui/GreekKey.vue';
+import KepengMark from '@/Components/ui/KepengMark.vue';
+import KepengRow from '@/Components/ui/KepengRow.vue';
 import { formatRupiah } from '@/composables/useRupiah';
 
 const props = defineProps({
@@ -31,7 +31,7 @@ const props = defineProps({
 });
 
 const page = usePage();
-const waUrl = computed(() => `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent('Halo admin Hermes POS, saya ingin tanya-tanya soal aplikasi kasir dan POS gudangnya.')}`);
+const waUrl = computed(() => `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent('Halo admin Kasira, saya ingin tanya-tanya soal aplikasi kasir dan POS gudangnya.')}`);
 
 
 const features = [
@@ -96,8 +96,8 @@ const comparison = [
 ];
 
 const faqs = [
-    ['Apakah Hermes POS cocok untuk gudang dan toko grosir?', 'Sangat cocok. Dilengkapi fitur stok timbangan curah (kg), konversi karungan, hitung susut, bahan kemas, kemas ulang, formula racik pakan, titip uang/deposit pelanggan, dan tagihan WA resmi.'],
-    ['Apakah bisa untuk jenis usaha lain seperti toko kelontong, resto, atau jasa?', 'Bisa. Hermes POS mendukung multi-usaha: toko retail, toko bangunan, fashion, kedai kopi/resto (layar dapur & meja), barbershop, salon, hingga laundry. Modul bisa dinyalakan atau dimatikan sesuai kebutuhan.'],
+    ['Apakah Kasira cocok untuk gudang dan toko grosir?', 'Sangat cocok. Dilengkapi fitur stok timbangan curah (kg), konversi karungan, hitung susut, bahan kemas, kemas ulang, formula racik pakan, titip uang/deposit pelanggan, dan tagihan WA resmi.'],
+    ['Apakah bisa untuk jenis usaha lain seperti toko kelontong, resto, atau jasa?', 'Bisa. Kasira mendukung multi-usaha: toko retail, toko bangunan, fashion, kedai kopi/resto (layar dapur & meja), barbershop, salon, hingga laundry. Modul bisa dinyalakan atau dimatikan sesuai kebutuhan.'],
     ['Bagaimana jika pembeli transfer melebihi total utang nota?', 'Sistem secara otomatis melunasi nota dan menyimpan sisa kelebihan uang ke Saldo Titip Uang (Deposit) pelanggan untuk memotong transaksi selanjutnya.'],
     ['Apakah perlu beli alat khusus?', 'Tidak. Cukup HP Android, iPhone, tablet, atau laptop yang sudah ada. Printer struk Bluetooth atau barcode scanner bisa ditambah kapan saja.'],
     ['Bagaimana kalau internet mati?', 'Kasir dan gudang tetap bisa mencatat transaksi secara offline. Semua data disimpan di HP/komputer dan otomatis disinkronkan saat online kembali.'],
@@ -122,18 +122,18 @@ const faqJsonLd = computed(() => ({
 
 <template>
     <Head>
-        <title>Hermes POS - Aplikasi Kasir & Gudang untuk UMKM</title>
+        <title>Aplikasi Kasir & Gudang untuk UMKM</title>
         <meta name="description" content="Aplikasi kasir (POS) dan manajemen gudang untuk UMKM Indonesia. Cocok untuk toko ritel, gudang & distributor pakan, F&B, dan jasa. Bisa jualan offline, struk WhatsApp, titip uang deposit, dan stok timbangan otomatis." />
         <meta name="keywords" content="aplikasi kasir, aplikasi pos kasir, aplikasi gudang, pos gudang, gudang pakan, kasir toko kelontong, software kasir umkm, aplikasi kasbon, kasir offline, titip uang deposit, hermes pos" />
-        <meta property="og:title" content="Hermes POS - Aplikasi Kasir & Gudang untuk UMKM" />
+        <meta property="og:title" content="Kasira - Aplikasi Kasir & Gudang untuk UMKM" />
         <meta property="og:description" content="Kasir cepat, kabar sampai. Jualan offline, struk & tagihan WhatsApp, titip uang deposit, dan manajemen gudang/toko lengkap." />
         <component :is="'script'" type="application/ld+json">{{ JSON.stringify(faqJsonLd) }}</component>
     </Head>
 
     <div class="min-h-dvh bg-page text-ink">
         <header class="relative overflow-hidden bg-brand text-white">
-            <CaduceusMark class="absolute -right-24 -bottom-24 size-120 text-accent opacity-[0.07]" />
-            <GreekKey class="absolute inset-x-0 bottom-0 text-accent/60" :height="12" />
+            <KepengMark class="absolute -right-24 -bottom-24 size-120 text-accent opacity-[0.07]" />
+            <KepengRow class="absolute inset-x-0 bottom-0 text-accent/60" :height="12" />
             <nav class="relative mx-auto flex max-w-6xl items-center gap-3 px-4 pt-safe py-4 sm:px-6">
                 <AppLogo :size="40" variant="inverse" />
                 <Link :href="route('login')" class="pressable ml-auto rounded-2xl px-4 py-2 text-lg font-bold text-white hover:bg-white/10">Masuk</Link>
@@ -144,7 +144,7 @@ const faqJsonLd = computed(() => ({
                     <p class="mb-3 inline-flex rounded-full bg-white/10 px-4 py-1 text-base font-bold text-accent">
                         Aplikasi Kasir POS & Manajemen Gudang Modern di Indonesia
                     </p>
-                    <h1 class="font-greek text-4xl leading-tight font-bold tracking-wide sm:text-5xl">
+                    <h1 class="font-display text-4xl leading-tight font-extrabold tracking-tight sm:text-5xl">
                         Kasir cepat,<br /><span class="text-accent">kabar sampai.</span>
                     </h1>
                     <p class="mt-5 max-w-xl text-xl text-white/85">
@@ -261,7 +261,7 @@ const faqJsonLd = computed(() => ({
                         <tr class="border-b border-line">
                             <th class="p-4">Pekerjaan</th>
                             <th class="p-4 text-ink-soft">Buku / kalkulator</th>
-                            <th class="p-4">Hermes POS</th>
+                            <th class="p-4">Kasira</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -295,7 +295,7 @@ const faqJsonLd = computed(() => ({
                 <Link :href="route('register')" class="pressable flex min-h-touch-lg flex-1 items-center justify-center rounded-2xl bg-accent px-6 text-xl font-extrabold text-ink">Coba Gratis</Link>
                 <a :href="waUrl" target="_blank" rel="noopener" class="pressable flex min-h-touch-lg flex-1 items-center justify-center rounded-2xl border-2 border-white/30 px-6 text-xl font-bold">Tanya Admin</a>
             </div>
-            <p class="mt-8 text-base text-white/60">Hermes POS · Kasir cepat, kabar sampai.</p>
+            <p class="mt-8 text-base text-white/60">Kasira · Kasir cepat, kabar sampai.</p>
         </section>
     </div>
 </template>

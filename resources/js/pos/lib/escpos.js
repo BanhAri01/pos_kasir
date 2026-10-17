@@ -120,7 +120,7 @@ export function testPageBytes(paper = '58') {
         .align('center')
         .bold(true)
         .big(true)
-        .line('HERMES POS')
+        .line('KASIRA')
         .big(false)
         .bold(false)
         .line('Tes printer berhasil!')

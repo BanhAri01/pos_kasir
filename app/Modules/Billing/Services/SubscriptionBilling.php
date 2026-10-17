@@ -65,7 +65,7 @@ class SubscriptionBilling
 
         $items = [[
             'id' => 'HPOS-'.strtoupper($plan).'-'.$months,
-            'name' => 'Hermes POS '.Plans::label($plan).' '.$months.' bulan',
+            'name' => 'Kasira '.Plans::label($plan).' '.$months.' bulan',
             'price' => $base,
             'quantity' => 1,
         ]];

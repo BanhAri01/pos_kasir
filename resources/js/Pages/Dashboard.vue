@@ -9,8 +9,8 @@ import { BellRing, Calculator, ChartColumn, ChevronRight, Palette, SlidersHorizo
 import BarChart from '@/Components/BarChart.vue';
 import StatCard from '@/Components/StatCard.vue';
 import WarehouseFlow from '@/Components/WarehouseFlow.vue';
-import CaduceusMark from '@/Components/ui/CaduceusMark.vue';
-import GreekKey from '@/Components/ui/GreekKey.vue';
+import KepengMark from '@/Components/ui/KepengMark.vue';
+import KepengRow from '@/Components/ui/KepengRow.vue';
 import { formatRupiah } from '@/composables/useRupiah';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import HelpButton from '@/Components/ui/HelpButton.vue';
@@ -71,8 +71,8 @@ const shortcuts = computed(() =>
         :href="route('pos.show')"
         class="pressable relative mt-6 flex items-center gap-5 overflow-hidden rounded-3xl bg-brand p-6 text-white shadow-float sm:p-8"
     >
-        <CaduceusMark class="absolute -right-6 -bottom-10 size-52 text-accent opacity-15" />
-        <GreekKey class="absolute inset-x-0 bottom-0 text-accent/50" :height="10" />
+        <KepengMark class="absolute -right-6 -bottom-10 size-52 text-accent opacity-15" />
+        <KepengRow class="absolute inset-x-0 bottom-0 text-accent/50" :height="10" />
         <span class="relative flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/15">
             <Calculator :size="36" aria-hidden="true" />
         </span>

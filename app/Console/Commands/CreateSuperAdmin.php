@@ -10,9 +10,9 @@ use Illuminate\Support\Str;
 
 class CreateSuperAdmin extends Command
 {
-    protected $signature = 'hermes:admin {phone : No HP admin} {name=Admin Hermes : Nama admin}';
+    protected $signature = 'hermes:admin {phone : No HP admin} {name=Admin Kasira : Nama admin}';
 
-    protected $description = 'Buat atau perbarui akun admin platform Hermes POS dengan kata sandi acak';
+    protected $description = 'Buat atau perbarui akun admin platform Kasira dengan kata sandi acak';
 
     public function handle(): int
     {

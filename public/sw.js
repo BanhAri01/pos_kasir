@@ -1,5 +1,5 @@
 /*
- * Service Worker Hermes POS: menyimpan layar kasir di HP supaya tetap terbuka saat offline.
+ * Service Worker Kasira: menyimpan layar kasir di HP supaya tetap terbuka saat offline.
  *
  * Strategi:
  *  - /build/assets/*   : simpan permanen (nama file berubah setiap versi baru).
@@ -8,7 +8,7 @@
  *  - halaman lain      : butuh internet; kalau offline tampil halaman "offline.html".
  *  - data / API        : TIDAK disimpan di sini (diurus IndexedDB oleh aplikasi kasir).
  */
-const VERSION = 'hermes-v3'; // v3: logo caduceus + gaya Yunani
+const VERSION = 'kasira-v4'; // v4: nama Kasira + logo kepeng
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 const IMAGES = `${VERSION}-images`;

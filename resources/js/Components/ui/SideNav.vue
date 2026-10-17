@@ -8,7 +8,7 @@ import { LogOut, Repeat } from 'lucide-vue-next';
 import { useAuth } from '@/composables/useAuth';
 import { useNavigation } from '@/composables/useNavigation';
 import AppLogo from './AppLogo.vue';
-import GreekKey from './GreekKey.vue';
+import KepengRow from './KepengRow.vue';
 
 const { user, tenant } = useAuth();
 const { main, business, settings, isActive } = useNavigation();
@@ -24,7 +24,7 @@ const itemClass = (active) => [
         <div class="px-6 pt-6 pb-4">
             <AppLogo :size="40" />
         </div>
-        <GreekKey class="mb-2 text-accent/60" :height="8" />
+        <KepengRow class="mb-2 text-accent/60" :height="8" />
 
         <nav class="flex-1 overflow-y-auto px-3">
             <ul class="flex flex-col gap-1">

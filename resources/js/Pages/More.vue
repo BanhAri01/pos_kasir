@@ -15,7 +15,7 @@ const page = usePage();
 const { business, settings } = useNavigation();
 
 const whatsappUrl = computed(
-    () => `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent('Halo admin Hermes POS, saya butuh bantuan.')}`,
+    () => `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent('Halo admin Kasira, saya butuh bantuan.')}`,
 );
 
 const rowClass = 'card pressable flex min-h-touch items-center gap-3 px-4 text-lg font-bold';

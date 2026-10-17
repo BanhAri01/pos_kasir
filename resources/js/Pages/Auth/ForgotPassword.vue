@@ -15,7 +15,7 @@ const business = ref('');
 const ready = computed(() => phone.value.replace(/\D/g, '').length >= 9);
 const waUrl = computed(() => {
     const text = [
-        'Halo admin Hermes POS, saya lupa kata sandi.',
+        'Halo admin Kasira, saya lupa kata sandi.',
         `No HP akun: ${phone.value.trim()}`,
         business.value.trim() ? `Nama usaha: ${business.value.trim()}` : null,
         'Mohon dibantu buatkan kata sandi baru. Terima kasih.',
@@ -28,7 +28,7 @@ const waUrl = computed(() => {
     <Head title="Lupa Kata Sandi" />
 
     <h1 class="text-3xl font-extrabold text-ink sm:text-4xl">Lupa kata sandi?</h1>
-    <p class="mt-2 text-lg text-ink-soft">Tidak apa-apa. Admin Hermes akan membuatkan kata sandi baru lewat WhatsApp.</p>
+    <p class="mt-2 text-lg text-ink-soft">Tidak apa-apa. Admin Kasira akan membuatkan kata sandi baru lewat WhatsApp.</p>
 
     <ol class="mt-6 flex flex-col gap-2 text-lg text-ink">
         <li><b>1.</b> Isi no HP yang dipakai untuk masuk.</li>

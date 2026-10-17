@@ -149,7 +149,7 @@ class AssistantController extends Controller
         $record->updated_at = now();
         $record->save();
 
-        $text = "Kode Asisten Toko Hermes POS: *{$code}*\n\nMasukkan kode ini di halaman Asisten Toko untuk menghubungkan nomor ini dengan {$tenant->name}. Berlaku ".self::CODE_MINUTES.' menit. Abaikan pesan ini kalau Anda tidak sedang mendaftar.';
+        $text = "Kode Asisten Toko Kasira: *{$code}*\n\nMasukkan kode ini di halaman Asisten Toko untuk menghubungkan nomor ini dengan {$tenant->name}. Berlaku ".self::CODE_MINUTES.' menit. Abaikan pesan ini kalau Anda tidak sedang mendaftar.';
 
         if (! $sender->send($phone, $text, $tenant->id)) {
             $record->delete();

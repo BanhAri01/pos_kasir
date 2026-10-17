@@ -1,7 +1,7 @@
 @php
     // Diterapkan langsung dari server supaya tidak ada "kedipan" tema/ukuran saat halaman dibuka.
     $prefs = auth()->user()?->preferences ?? [];
-    $appName = config('app.name', 'Hermes POS');
+    $appName = config('app.name', 'Kasira');
     // Hanya halaman publik yang boleh masuk Google; tagihan, pesanan, dan aplikasi selalu noindex.
     $indexable = request()->routeIs('home', 'register', 'login');
     $appDescription = 'Aplikasi kasir (POS) dan manajemen gudang untuk UMKM Indonesia: toko ritel, grosir & distributor, F&B, dan jasa. Bisa jualan offline, struk & tagihan WhatsApp, kasbon, dan stok timbangan.';

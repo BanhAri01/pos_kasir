@@ -7,7 +7,6 @@
 @import '@fontsource/nunito/latin-800.css';
 @import '@fontsource/plus-jakarta-sans/latin-700.css';
 @import '@fontsource/plus-jakarta-sans/latin-800.css';
-@import '@fontsource/cinzel/latin-700.css';
 
 @source '../**/*.blade.php';
 @source '../**/*.vue';
@@ -15,7 +14,7 @@
 
 /*
  * ================================================================
- * DESIGN TOKEN HERMES POS: ramah untuk semua umur, tampil modern
+ * DESIGN TOKEN KASIRA: ramah untuk semua umur, tampil modern
  * ================================================================
  * Aturan:
  * - Ukuran dasar 18px (html 112.5%). Semua ukuran memakai rem, jadi pilihan
@@ -28,8 +27,6 @@
 @theme {
     --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Plus Jakarta Sans', 'Nunito', ui-sans-serif, system-ui, sans-serif;
-    /* Huruf bergaya prasasti Yunani: hanya untuk merek & judul besar (bukan teks biasa, supaya tetap mudah dibaca) */
-    --font-greek: 'Cinzel', 'Times New Roman', serif;
 
     /* Latar & teks */
     --color-page: #f3f4f6;
@@ -50,7 +47,7 @@
     /* Hitam merek (latar logo, panel merek, kartu Mulai Jualan). Sama di mode terang & gelap. */
     --color-brand: #111827;
 
-    /* Emas = aksen merek (sandal bersayap Hermes). Untuk hiasan, bukan teks kecil. */
+    /* Emas = aksen merek (uang kepeng). Untuk hiasan, bukan teks kecil. */
     --color-accent: #f59e0b;
     --color-accent-soft: #fef3c7;
     --color-accent-ink: #92400e;
@@ -100,7 +97,7 @@
         --color-line: #334155;
         --color-ink: #f1f5f9;
         --color-ink-soft: #cbd5e1;
-        /* Mode gelap: tombol utama emas dengan teks gelap (hitam + emas ala vas Yunani kuno) */
+        /* Mode gelap: tombol utama emas dengan teks gelap (hitam + emas) */
         --color-primary: #f5b544;
         --color-primary-hover: #f8c869;
         --color-primary-press: #e0a12e;

@@ -39,7 +39,7 @@ class WhatsAppHealth
             default => config('hermes.whatsapp.driver') === 'fonnte' ? (string) config('hermes.whatsapp.credentials.token') : '',
         };
         if ($platformToken !== '') {
-            $devices['platform'] = ['token' => $platformToken, 'label' => 'Nomor WA pusat Hermes POS', 'tenant_id' => null];
+            $devices['platform'] = ['token' => $platformToken, 'label' => 'Nomor WA pusat Kasira', 'tenant_id' => null];
         }
 
         $assistant = (string) config('hermes.assistant.fonnte_token');
@@ -135,10 +135,10 @@ class WhatsAppHealth
         if (isset($down[$ownKey])) {
             $notices[] = ['text' => 'Nomor WhatsApp usaha Anda terputus sejak '.$down[$ownKey]['since']->format('d/m H:i').'. Buka Fonnte lalu scan ulang QR dari HP nomor itu.', 'fix' => true];
         } elseif (! $usesOwn && isset($down['platform'])) {
-            $notices[] = ['text' => 'WhatsApp Hermes POS sedang terputus. Struk & laporan WhatsApp tertunda; admin Hermes POS sudah diberi tahu.', 'fix' => false];
+            $notices[] = ['text' => 'WhatsApp Kasira sedang terputus. Struk & laporan WhatsApp tertunda; admin Kasira sudah diberi tahu.', 'fix' => false];
         }
         if (isset($down['asisten']) && $tenant->allows('assistant')) {
-            $notices[] = ['text' => 'Asisten Toko lewat WhatsApp sedang terputus; tanya lewat aplikasi tetap bisa. Admin Hermes POS sudah diberi tahu.', 'fix' => false];
+            $notices[] = ['text' => 'Asisten Toko lewat WhatsApp sedang terputus; tanya lewat aplikasi tetap bisa. Admin Kasira sudah diberi tahu.', 'fix' => false];
         }
 
         return $notices;
@@ -190,7 +190,7 @@ class WhatsAppHealth
         Log::info("WhatsApp {$device['label']} tersambung lagi");
 
         if ($device['tenant_id'] === null) {
-            $this->mail('[Hermes POS] WhatsApp tersambung lagi', $device['label'].' sudah tersambung lagi (terputus sejak '.Carbon::parse($state['since'])->format('d M Y H:i').').');
+            $this->mail('[Kasira] WhatsApp tersambung lagi', $device['label'].' sudah tersambung lagi (terputus sejak '.Carbon::parse($state['since'])->format('d M Y H:i').').');
         }
     }
 
@@ -201,7 +201,7 @@ class WhatsAppHealth
         }
 
         $this->mail(
-            '[Hermes POS] PENTING: WhatsApp '.$what,
+            '[Kasira] PENTING: WhatsApp '.$what,
             $device['label']." {$what}.\nKeterangan dari Fonnte: {$reason}\n\n"
             ."Selama terputus, struk, laporan harian, pengingat, dan Asisten Toko lewat WhatsApp TIDAK terkirim.\n\n"
             ."Cara menyambungkan lagi:\n"

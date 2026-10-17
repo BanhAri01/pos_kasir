@@ -17,7 +17,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Pengaturan WhatsApp: default memakai nomor pusat Hermes (tidak perlu atur apa-apa).
+ * Pengaturan WhatsApp: default memakai nomor pusat Kasira (tidak perlu atur apa-apa).
  * Pemilik bisa memakai nomor sendiri lewat Fonnte / Wablas / WhatsApp Cloud API,
  * mengubah isi pesan, kirim pesan uji, dan melihat riwayat pesan terkirim.
  */
@@ -83,7 +83,7 @@ class WhatsAppSettingsController extends Controller
         if ($data['mode'] === 'central') {
             $account?->update(['is_active' => false]);
 
-            return back()->with('success', 'Pesan WhatsApp dikirim memakai nomor pusat Hermes.');
+            return back()->with('success', 'Pesan WhatsApp dikirim memakai nomor pusat Kasira.');
         }
 
         $credentials = $account?->credentials ?? [];
@@ -149,7 +149,7 @@ class WhatsAppSettingsController extends Controller
             return back()->withErrors(['phone' => 'No HP belum benar. Contoh: 0812 3456 7890.']);
         }
 
-        $whatsapp->send($phone, "Halo! Ini pesan uji dari *{$this->context->get()->name}* lewat Hermes POS ✅");
+        $whatsapp->send($phone, "Halo! Ini pesan uji dari *{$this->context->get()->name}* lewat Kasira ✅");
 
         return back()->with('success', 'Pesan uji sedang dikirim. Cek riwayat di bawah dalam beberapa detik.');
     }
