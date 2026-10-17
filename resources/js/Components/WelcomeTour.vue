@@ -25,7 +25,7 @@ const steps = computed(() => [
     {
         icon: null,
         title: `Selamat datang, ${props.userName}!`,
-        text: 'Kasira, dari kata kasir. Logonya uang kepeng, uang kuno Bali lambang rezeki yang terus berputar. Aplikasi ini membantu jualan Anda cepat, dan kabarnya (struk, pengingat) sampai lewat WhatsApp.',
+        text: 'Kasloka, dari kata kas (uang) dan loka (tempat). Logonya uang kepeng, uang kuno Bali lambang rezeki yang terus berputar. Aplikasi ini membantu jualan Anda cepat, dan kabarnya (struk, pengingat) sampai lewat WhatsApp.',
     },
     {
         icon: LayoutGrid,

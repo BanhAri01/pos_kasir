@@ -3,7 +3,7 @@
  * Kerangka halaman sebelum masuk (daftar, masuk, masuk dengan PIN).
  *
  * - HP: logo di atas, form di bawahnya.
- * - Laptop/tablet lebar: dua sisi. Kiri panel merek Kasira, kanan form.
+ * - Laptop/tablet lebar: dua sisi. Kiri panel merek Kasloka, kanan form.
  */
 import { usePage } from '@inertiajs/vue3';
 import { MessageCircle, ReceiptText, WifiOff, Zap } from 'lucide-vue-next';
@@ -71,7 +71,7 @@ const highlights = [
 
             <footer class="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center">
                 <a
-                    :href="`https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent('Halo admin Kasira, saya butuh bantuan.')}`"
+                    :href="`https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent('Halo admin Kasloka, saya butuh bantuan.')}`"
                     target="_blank"
                     rel="noopener"
                     class="pressable inline-flex min-h-touch items-center gap-2 rounded-2xl px-4 text-lg font-bold text-primary-ink hover:bg-primary-soft"

@@ -24,7 +24,7 @@ const page = usePage();
 const referralCopied = ref(false);
 const referralWa = computed(() => {
     if (!props.referral) return '';
-    const text = `Saya pakai Kasira untuk kasir usaha, gampang dan bisa jalan walau internet mati. Daftar lewat link ini dapat bonus coba gratis ${props.referral.bonus_days} hari: ${props.referral.url}`;
+    const text = `Saya pakai Kasloka untuk kasir usaha, gampang dan bisa jalan walau internet mati. Daftar lewat link ini dapat bonus coba gratis ${props.referral.bonus_days} hari: ${props.referral.url}`;
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
 });
 
@@ -55,7 +55,7 @@ const statusText = computed(() => {
 const statusTone = computed(() => (props.subscription.has_access && !props.subscription.in_grace ? 'bg-primary-soft text-primary-ink' : 'bg-danger-soft text-danger-ink'));
 
 const adminUrl = computed(() => {
-    const text = `Halo admin Kasira, saya ingin berlangganan paket ${selectedPlan.value?.label ?? ''} ${form.months} bulan untuk usaha ${page.props.tenant?.name ?? ''}.`;
+    const text = `Halo admin Kasloka, saya ingin berlangganan paket ${selectedPlan.value?.label ?? ''} ${form.months} bulan untuk usaha ${page.props.tenant?.name ?? ''}.`;
     return `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent(text)}`;
 });
 

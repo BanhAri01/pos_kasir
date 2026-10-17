@@ -6,7 +6,7 @@ import { unlockAudioOnFirstTouch } from '@/composables/useFeedback';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - Kasira` : 'Kasira'),
+    title: (title) => (title ? `${title} - Kasloka` : 'Kasloka'),
     resolve: (name) => {
         const pages = import.meta.glob('./Pages/**/*.vue');
         return pages[`./Pages/${name}.vue`]();

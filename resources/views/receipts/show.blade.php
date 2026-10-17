@@ -80,7 +80,7 @@
     <hr>
     <div class="center">
         {{ $outlet->receipt_footer ?: 'Terima kasih sudah berbelanja!' }}
-        <div class="muted" style="margin-top:6px;font-size:12px">Struk digital oleh Kasira</div>
+        <div class="muted" style="margin-top:6px;font-size:12px">Struk digital oleh Kasloka</div>
     </div>
 </main>
 <div class="actions">

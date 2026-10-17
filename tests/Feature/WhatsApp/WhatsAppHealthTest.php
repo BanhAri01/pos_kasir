@@ -84,7 +84,7 @@ it('pemilik usaha yang memakai nomor pusat melihat peringatan, kasir tidak', fun
     app(WhatsAppHealth::class)->check();
 
     $this->actingAs($owner)->get(route('dashboard'))
-        ->assertInertia(fn ($page) => $page->where('waNotices.0.fix', false)->where('waNotices.0.text', fn ($t) => str_contains($t, 'WhatsApp Kasira sedang terputus')));
+        ->assertInertia(fn ($page) => $page->where('waNotices.0.fix', false)->where('waNotices.0.text', fn ($t) => str_contains($t, 'WhatsApp Kasloka sedang terputus')));
     $this->actingAs($kasir)->get(route('dashboard'))
         ->assertInertia(fn ($page) => $page->where('waNotices', []));
 
@@ -106,7 +106,7 @@ it('nomor milik usaha yang terputus hanya diberitahukan ke pemilik usaha itu, ta
     expect($notices)->toHaveCount(1)
         ->and($notices[0]['text'])->toContain('Nomor WhatsApp usaha Anda terputus')
         ->and($notices[0]['fix'])->toBeTrue()
-        ->and(app(WhatsAppHealth::class)->noticesFor($other, $other->tenant)[0]['text'])->toContain('WhatsApp Kasira sedang terputus')
+        ->and(app(WhatsAppHealth::class)->noticesFor($other, $other->tenant)[0]['text'])->toContain('WhatsApp Kasloka sedang terputus')
         ->and(collect(sentEmails())->map->getSubject()->filter(fn ($s) => str_contains($s, 'terputus')))->toHaveCount(1);
 });
 

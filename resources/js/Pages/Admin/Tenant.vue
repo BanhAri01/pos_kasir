@@ -35,7 +35,7 @@ const statusText = computed(() => {
 
 const passwordWaUrl = computed(() => {
     if (!props.newPassword || !props.tenant.owner?.phone_raw) return null;
-    const text = `Halo ${props.tenant.owner.name}, ini kata sandi baru Kasira untuk ${props.tenant.name}:\n\n*${props.newPassword}*\n\nMasuk dengan no HP ${props.tenant.owner.phone}. Setelah masuk, segera ganti kata sandi ini.`;
+    const text = `Halo ${props.tenant.owner.name}, ini kata sandi baru Kasloka untuk ${props.tenant.name}:\n\n*${props.newPassword}*\n\nMasuk dengan no HP ${props.tenant.owner.phone}. Setelah masuk, segera ganti kata sandi ini.`;
     return `https://wa.me/${props.tenant.owner.phone_raw}?text=${encodeURIComponent(text)}`;
 });
 

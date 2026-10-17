@@ -1,5 +1,5 @@
 /**
- * Bentuk logo Kasira (viewBox 48 x 48): uang kepeng / pis bolong, uang kuno Bali
+ * Bentuk logo Kasloka (viewBox 48 x 48): uang kepeng / pis bolong, uang kuno Bali
  * dengan lubang persegi. Satu path ber-fill-rule evenodd: lingkaran koin, garis cincin,
  * lubang persegi, dan empat tanda aksara ikut menjadi lubang.
  */

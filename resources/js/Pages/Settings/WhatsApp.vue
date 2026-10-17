@@ -1,6 +1,6 @@
 <script setup>
 /**
- * Pengaturan WhatsApp. Default: memakai nomor pusat Kasira (langsung jalan, tanpa atur apa-apa).
+ * Pengaturan WhatsApp. Default: memakai nomor pusat Kasloka (langsung jalan, tanpa atur apa-apa).
  * Opsional: nomor usaha sendiri lewat Fonnte / Wablas / WhatsApp Cloud API.
  */
 import { ref } from 'vue';
@@ -74,9 +74,9 @@ const STATUS = { sent: [CheckCircle2, 'text-primary-ink', 'Terkirim'], failed: [
 
         <section class="card mb-6 flex flex-col gap-4 p-5">
             <h2 class="text-xl font-extrabold text-ink">Nomor pengirim</h2>
-            <SegmentedControl v-model="accountForm.mode" label="Nomor pengirim" :options="[{ value: 'central', label: 'Nomor pusat Kasira' }, { value: 'own', label: 'Nomor usaha sendiri' }]" />
+            <SegmentedControl v-model="accountForm.mode" label="Nomor pengirim" :options="[{ value: 'central', label: 'Nomor pusat Kasloka' }, { value: 'own', label: 'Nomor usaha sendiri' }]" />
             <p v-if="accountForm.mode === 'central'" class="rounded-2xl bg-primary-soft p-4 text-lg text-primary-ink">
-                Pesan dikirim dari nomor resmi Kasira atas nama usaha Anda. Tidak perlu mengatur apa pun.
+                Pesan dikirim dari nomor resmi Kasloka atas nama usaha Anda. Tidak perlu mengatur apa pun.
             </p>
             <template v-else>
                 <label class="block">

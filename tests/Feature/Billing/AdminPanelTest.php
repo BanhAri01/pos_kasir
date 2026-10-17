@@ -8,7 +8,7 @@ function superAdmin(): User
 {
     $admin = new User;
     $admin->forceFill([
-        'name' => 'Admin Kasira',
+        'name' => 'Admin Kasloka',
         'phone' => '6289900001111',
         'password' => Hash::make('rahasia-admin'),
         'is_super_admin' => true,

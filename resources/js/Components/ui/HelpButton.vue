@@ -18,7 +18,7 @@ const open = ref(false);
 const help = computed(() => helpContent[props.topic]);
 const whatsappUrl = computed(
     () =>
-        `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent(`Halo admin Kasira, saya butuh bantuan soal: ${help.value?.title ?? ''}`)}`,
+        `https://wa.me/${page.props.adminWhatsapp}?text=${encodeURIComponent(`Halo admin Kasloka, saya butuh bantuan soal: ${help.value?.title ?? ''}`)}`,
 );
 </script>
 

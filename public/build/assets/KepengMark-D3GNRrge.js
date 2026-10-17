@@ -1,0 +1,1 @@
+import{K as e}from"./AppLogo-B1yzdM-i.js";import{y as o,i as r,j as a,k as s}from"./registerServiceWorker-AfIrYNQx.js";const t={viewBox:"9 9 30 30","aria-hidden":"true",focusable:"false"},n=["d"],p={__name:"KepengMark",setup(c){return(l,_)=>(o(),r("svg",t,[a("path",{d:s(e),fill:"currentColor","fill-rule":"evenodd"},null,8,n)]))}};export{p as _};

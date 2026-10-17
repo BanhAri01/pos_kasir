@@ -97,5 +97,5 @@
         </tbody>
     </table>
 
-    <p class="muted" style="font-size:12px">Dicetak {{ $printedAt }} dari Kasira.</p>
+    <p class="muted" style="font-size:12px">Dicetak {{ $printedAt }} dari Kasloka.</p>
 @endsection

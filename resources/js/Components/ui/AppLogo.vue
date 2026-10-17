@@ -1,6 +1,6 @@
 <script setup>
 /**
- * Logo Kasira: uang kepeng (pis bolong) emas di atas kotak hitam. Kepeng adalah uang kuno Bali
+ * Logo Kasloka: uang kepeng (pis bolong) emas di atas kotak hitam. Kepeng adalah uang kuno Bali
  * yang masih dipakai dalam upacara, lambang rezeki yang berputar; lubang perseginya mudah dikenali
  * walau ikon kecil.
  *
@@ -27,8 +27,8 @@ defineProps({
             :class="variant === 'inverse' ? 'text-white' : 'text-ink'"
             :style="{ fontSize: `${size * 0.6}px` }"
         >
-            Kasira
+            Kasloka
         </span>
-        <span class="sr-only">Kasira</span>
+        <span class="sr-only">Kasloka</span>
     </span>
 </template>
